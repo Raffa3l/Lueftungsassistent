@@ -1,0 +1,25 @@
+{
+  "name": "lueftungsassistent",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Lüftungsassistent – zeigt, wann im Sommer die Fenster geschlossen bleiben sollten",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "upload": "node scripts/upload-sync.mjs",
+    "upload:watch": "node scripts/upload-sync.mjs --watch"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de-CH">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Zeigt für Schweizer Standorte, wann im Sommer die Fenster geschlossen bleiben sollten – für Wohnungen, Schulzimmer und Büros."
+    />
+    <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
+    <title>Lüftungsassistent – wann Fenster schliessen?</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🪟</text></svg>" />
+  </head>
+  <body>
+    <a class="sprunglink" href="#empfehlung">Direkt zur Empfehlung</a>
+
+    <div class="seite">
+      <header class="kopf">
+        <h1>Lüftungsassistent</h1>
+        <p class="kopf__untertitel">
+          Wann Fenster auf, wann zu – damit es im Sommer drinnen kühl bleibt.
+        </p>
+      </header>
+
+      <main>
+        <!-- Aktuelle Empfehlung -->
+        <section id="empfehlung" class="karte karte--empfehlung" aria-labelledby="empfehlung-titel">
+          <h2 id="empfehlung-titel" class="sr-nur">Aktuelle Empfehlung</h2>
+          <div id="empfehlung-inhalt" aria-live="polite" aria-busy="true">
+            <p class="platzhalter">Wetterdaten werden geladen …</p>
+          </div>
+        </section>
+
+        <!-- Einstellungen -->
+        <section class="karte" aria-labelledby="einstellungen-titel">
+          <h2 id="einstellungen-titel">Einstellungen</h2>
+          <p class="hinweis">
+            Die Auswahl wird auf diesem Gerät gespeichert und beim nächsten Besuch automatisch geladen.
+          </p>
+          <form id="einstellungen-formular" novalidate></form>
+        </section>
+
+        <!-- Temperaturverlauf -->
+        <section class="karte" aria-labelledby="verlauf-titel">
+          <h2 id="verlauf-titel">Temperaturverlauf</h2>
+          <figure class="diagramm-figur">
+            <div id="diagramm" class="diagramm"></div>
+            <figcaption id="diagramm-legende" class="legende"></figcaption>
+          </figure>
+        </section>
+
+        <!-- Stundenübersicht -->
+        <section class="karte" aria-labelledby="stunden-titel">
+          <h2 id="stunden-titel">Stunde für Stunde</h2>
+          <div id="stundentabelle" class="tabelle-huelle"></div>
+        </section>
+      </main>
+
+      <footer class="fuss">
+        <p>
+          Wetterdaten: <a href="https://open-meteo.com/" rel="noopener noreferrer" target="_blank">Open-Meteo</a>
+          (für die Schweiz auf Basis des Modells ICON-CH von MeteoSchweiz).
+        </p>
+        <p>
+          Die Raumtemperatur wird aus Gebäude- und Raumtyp berechnet, nicht gemessen. Sie ist eine
+          Orientierung – Sonnenschutz, Stockwerk, Fensterfläche und Ausrichtung wirken zusätzlich.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

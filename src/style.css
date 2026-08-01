@@ -1,0 +1,677 @@
+/*
+ * Lüftungsassistent – Gestaltung
+ *
+ * Mobile first: Das Grundlayout ist einspaltig, ab 720 px wird zweispaltig
+ * ergänzt. Farben liegen als Rollen-Variablen vor, damit Hell- und Dunkelmodus
+ * an einer Stelle umgeschaltet werden. Die Serienfarben des Diagramms sind auf
+ * Farbfehlsichtigkeit geprüft (Blau/Orange, Kontrast ≥ 3:1 zur Fläche).
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Flächen und Schrift */
+  --flaeche-seite: #f9f9f7;
+  --flaeche-karte: #fcfcfb;
+  --schrift-primaer: #0b0b0b;
+  --schrift-sekundaer: #52514e;
+  --schrift-gedaempft: #898781;
+  --linie-raster: #e1e0d9;
+  --linie-achse: #c3c2b7;
+  --rand: rgba(11, 11, 11, 0.1);
+
+  /* Datenserien */
+  --serie-aussen: #eb6834;
+  --serie-innen: #2a78d6;
+  --serie-vergleich: #898781;
+
+  /* Status: Fensterempfehlung */
+  --status-offen: #0ca30c;
+  --status-offen-flaeche: rgba(12, 163, 12, 0.12);
+  --status-zu: #ec835a;
+  --status-zu-flaeche: rgba(236, 131, 90, 0.16);
+  --status-dringend: #d03b3b;
+  --status-dringend-flaeche: rgba(208, 59, 59, 0.14);
+
+  --radius: 12px;
+  --schatten: 0 1px 2px rgba(11, 11, 11, 0.06), 0 4px 12px rgba(11, 11, 11, 0.04);
+  --schrift-familie: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --flaeche-seite: #0d0d0d;
+    --flaeche-karte: #1a1a19;
+    --schrift-primaer: #ffffff;
+    --schrift-sekundaer: #c3c2b7;
+    --schrift-gedaempft: #898781;
+    --linie-raster: #2c2c2a;
+    --linie-achse: #383835;
+    --rand: rgba(255, 255, 255, 0.1);
+
+    --serie-aussen: #d95926;
+    --serie-innen: #3987e5;
+
+    --status-offen-flaeche: rgba(12, 163, 12, 0.18);
+    --status-zu-flaeche: rgba(236, 131, 90, 0.2);
+    --status-dringend-flaeche: rgba(208, 59, 59, 0.2);
+
+    --schatten: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--flaeche-seite);
+  color: var(--schrift-primaer);
+  font-family: var(--schrift-familie);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+h2 {
+  font-size: 1.125rem;
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--serie-innen);
+}
+
+/* Nur für Screenreader sichtbar */
+.sr-nur {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sprunglink {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: 0.75rem 1rem;
+  background: var(--flaeche-karte);
+  border: 2px solid var(--serie-innen);
+  border-radius: 0 0 var(--radius) 0;
+  z-index: 10;
+}
+
+.sprunglink:focus {
+  left: 0;
+}
+
+.seite {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+}
+
+.kopf {
+  padding: 0.5rem 0 1.25rem;
+}
+
+.kopf__untertitel {
+  margin: 0.35rem 0 0;
+  color: var(--schrift-sekundaer);
+  max-width: 34rem;
+}
+
+main {
+  display: grid;
+  gap: 1rem;
+}
+
+.karte {
+  background: var(--flaeche-karte);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  padding: 1.25rem;
+}
+
+.hinweis {
+  margin: 0.35rem 0 1rem;
+  color: var(--schrift-sekundaer);
+  font-size: 0.875rem;
+}
+
+.platzhalter {
+  margin: 0;
+  color: var(--schrift-sekundaer);
+}
+
+/* ---------- Empfehlungskarte ---------- */
+
+.karte--empfehlung {
+  border-left: 4px solid var(--akzent, var(--linie-achse));
+}
+
+.empfehlung__kopf {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.empfehlung__symbol {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--akzent-flaeche);
+  color: var(--akzent);
+}
+
+.empfehlung__symbol svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.empfehlung__titel {
+  font-size: clamp(1.35rem, 5vw, 1.75rem);
+  font-weight: 700;
+  margin: 0;
+}
+
+.empfehlung__ort {
+  margin: 0;
+  color: var(--schrift-sekundaer);
+  font-size: 0.875rem;
+}
+
+.empfehlung__begruendung {
+  margin: 0.85rem 0 0;
+  max-width: 44rem;
+}
+
+/* Stosslüftungshinweis: ergänzt die Empfehlung, ohne sie zu überstimmen */
+.empfehlung__zusatz {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.85rem 0 0;
+  padding: 0.6rem 0.75rem;
+  max-width: 44rem;
+  border-radius: 10px;
+  border: 1px solid var(--rand);
+  background: var(--flaeche-seite);
+  font-size: 0.9375rem;
+}
+
+.empfehlung__zusatz svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  color: var(--serie-innen);
+}
+
+.empfehlung__wechsel {
+  margin: 0.65rem 0 0;
+  color: var(--schrift-sekundaer);
+  font-size: 0.9375rem;
+}
+
+.kennzahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kennzahl {
+  border: 1px solid var(--rand);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+}
+
+.kennzahl__bezeichnung {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--schrift-sekundaer);
+}
+
+.kennzahl__bezeichnung svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.kennzahl__wert {
+  display: block;
+  font-size: 1.375rem;
+  font-weight: 650;
+  margin-top: 0.15rem;
+}
+
+.kennzahl__zusatz {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--schrift-gedaempft);
+}
+
+/* Farbmarke neben einer Beschriftung (Serienzuordnung ohne Farbe-allein) */
+.marke {
+  flex: none;
+  width: 0.75rem;
+  height: 0.2rem;
+  border-radius: 2px;
+  background: var(--marke-farbe, currentColor);
+}
+
+.marke--gestrichelt {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--marke-farbe) 0 4px,
+    transparent 4px 7px
+  );
+}
+
+.marke--flaeche {
+  height: 0.75rem;
+  border-radius: 3px;
+  background: var(--status-offen-flaeche);
+  border: 1px solid var(--status-offen);
+}
+
+/* ---------- Formular ---------- */
+
+#einstellungen-formular {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.feldgruppe {
+  display: grid;
+  gap: 1.1rem;
+  /* Felder oben ausrichten, damit ein kurzes Feld neben einem langen
+     nicht auf dessen Höhe gedehnt wird. */
+  align-items: start;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+@media (min-width: 40rem) {
+  .feldgruppe--zwei {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.feld {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+}
+
+.feld > label,
+.feld__titel {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+/* Standardeinrückung der Fieldset-Beschriftung aufheben */
+legend {
+  padding: 0;
+}
+
+.feld__beschreibung {
+  font-size: 0.8125rem;
+  color: var(--schrift-sekundaer);
+  margin: 0;
+}
+
+select,
+input[type='number'] {
+  font: inherit;
+  color: inherit;
+  background: var(--flaeche-seite);
+  border: 1px solid var(--linie-achse);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  width: 100%;
+  min-height: 2.75rem; /* bequeme Trefferfläche auf dem Mobilgerät */
+}
+
+select:focus-visible,
+input:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--serie-innen);
+  outline-offset: 2px;
+}
+
+.schalter {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.schalter input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.2rem 0 0;
+  flex: none;
+  accent-color: var(--serie-innen);
+}
+
+.knopfreihe {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--flaeche-seite);
+  border: 1px solid var(--linie-achse);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--schrift-sekundaer);
+}
+
+/* ---------- Ferienliste ---------- */
+
+.ferienliste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ferienzeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ferienzeile input[type='text'] {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.ferienzeile__zeitraum {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 18rem;
+  font-size: 0.875rem;
+  color: var(--schrift-sekundaer);
+}
+
+.ferienzeile input[type='date'] {
+  flex: 1 1 8rem;
+  min-width: 7.5rem;
+}
+
+input[type='text'],
+input[type='date'] {
+  font: inherit;
+  color: inherit;
+  background: var(--flaeche-seite);
+  border: 1px solid var(--linie-achse);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  min-height: 2.75rem;
+}
+
+.knopf--klein {
+  padding: 0.45rem 0.8rem;
+  min-height: 2.5rem;
+  font-size: 0.875rem;
+}
+
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kennwerte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0.6rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--schrift-sekundaer);
+  list-style: none;
+}
+
+/* ---------- Diagramm ---------- */
+
+.diagramm-figur {
+  margin: 0;
+}
+
+.diagramm {
+  position: relative;
+  width: 100%;
+  touch-action: pan-y; /* Wischen zum Scrollen bleibt möglich */
+}
+
+.diagramm svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.diagramm__hinweisfeld {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background: var(--flaeche-karte);
+  border: 1px solid var(--rand);
+  border-radius: 8px;
+  box-shadow: var(--schatten);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  min-width: 10rem;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 2;
+}
+
+.diagramm__hinweisfeld[data-sichtbar='true'] {
+  opacity: 1;
+}
+
+.hinweisfeld__zeit {
+  font-weight: 650;
+  margin-bottom: 0.3rem;
+}
+
+.hinweisfeld__zeile {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.hinweisfeld__wert {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--schrift-sekundaer);
+}
+
+.legende__eintrag {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ---------- Tabelle ---------- */
+
+.tabelle-huelle {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+caption {
+  text-align: left;
+  color: var(--schrift-sekundaer);
+  font-size: 0.875rem;
+  padding-bottom: 0.6rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--linie-raster);
+  white-space: nowrap;
+}
+
+thead th {
+  font-size: 0.8125rem;
+  color: var(--schrift-sekundaer);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: var(--flaeche-karte);
+}
+
+td.zahl {
+  font-variant-numeric: tabular-nums;
+}
+
+tr[data-jetzt='true'] {
+  background: var(--status-zu-flaeche);
+  background: color-mix(in srgb, var(--serie-innen) 10%, transparent);
+}
+
+tr[data-jetzt='true'] th {
+  font-weight: 700;
+}
+
+.status-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.status-marke svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.status-marke--oeffnen {
+  color: var(--status-offen);
+}
+
+.status-marke--schliessen {
+  color: var(--status-zu);
+}
+
+.status-gruppe {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.status-zusatz {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--schrift-sekundaer);
+  font-size: 0.8125rem;
+}
+
+.status-zusatz svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+}
+
+@media (prefers-color-scheme: light) {
+  /* Auf heller Fläche ist der Statuston knapp unter 3:1 – dunkler stellen,
+     die Bedeutung trägt ohnehin Symbol plus Text. */
+  .status-marke--schliessen {
+    color: #b4552c;
+  }
+}
+
+/* ---------- Meldungen ---------- */
+
+.meldung {
+  border: 1px solid var(--status-dringend);
+  background: var(--status-dringend-flaeche);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin: 0 0 1rem;
+}
+
+.meldung h2 {
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.meldung p {
+  margin: 0 0 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
