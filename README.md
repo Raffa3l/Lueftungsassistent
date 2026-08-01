@@ -1,5 +1,9 @@
 # Lüftungsassistent
 
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue.svg)](LICENSE)
+[![GitHub Pages](https://img.shields.io/badge/Demo-GitHub%20Pages-orange.svg)](https://raffa3l.github.io/Lueftungsassistent/)
+
+
 Wann Fenster auf, wann zu – damit es im Sommer drinnen kühl bleibt.
 
 Die App vergleicht die Aussentemperaturprognose mit einer berechneten
