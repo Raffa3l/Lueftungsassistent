@@ -30,6 +30,7 @@ export const RAUMTYPEN: readonly Raumtyp[] = [
     belegung: { vonStunde: 7, bisStunde: 23, nurWerktags: false },
     beachtetFerien: false,
     stosslueftungNoetig: false,
+    feuchtelastStossweise: true,
   },
   {
     id: 'schulzimmer',
@@ -41,6 +42,7 @@ export const RAUMTYPEN: readonly Raumtyp[] = [
     belegung: { vonStunde: 8, bisStunde: 16, nurWerktags: true },
     beachtetFerien: true,
     stosslueftungNoetig: true,
+    feuchtelastStossweise: false,
   },
   {
     id: 'buero',
@@ -52,6 +54,7 @@ export const RAUMTYPEN: readonly Raumtyp[] = [
     belegung: { vonStunde: 8, bisStunde: 18, nurWerktags: true },
     beachtetFerien: true,
     stosslueftungNoetig: true,
+    feuchtelastStossweise: false,
   },
 ];
 

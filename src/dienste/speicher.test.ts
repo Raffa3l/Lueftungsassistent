@@ -35,6 +35,8 @@ describe('ladeEinstellungen', () => {
       zielTemperaturC: celsius(22.5),
       hystereseK: kelvin(1.5),
       minRaumtemperaturC: celsius(19),
+      ausrichtungId: 'west',
+      sonnenschutzId: 'keiner',
       nachtauskuehlung: false,
       feiertageBeachten: false,
       ferien: [{ id: 'f1', name: 'Sommerferien', von: '2026-07-06', bis: '2026-08-16' }],

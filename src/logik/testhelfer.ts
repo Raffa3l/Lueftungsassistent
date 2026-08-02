@@ -1,5 +1,5 @@
 import type { Einstellungen, Gebaeudetyp, Raumtyp, Wetterstunde } from '../typen.ts';
-import { celsius, stunden, wattProM2, whProM2K } from '../einheiten.ts';
+import { celsius, meterProSekunde, stunden, wattProM2, whProM2K } from '../einheiten.ts';
 import { STANDARD_EINSTELLUNGEN } from '../konfiguration/standardwerte.ts';
 
 /** Gemeinsame Bausteine für die Unit-Tests. */
@@ -16,6 +16,7 @@ export const TEST_GEBAEUDE: Gebaeudetyp = {
   zeitkonstanteGeschlossenH: stunden(20),
   zeitkonstanteOffenH: stunden(5),
   solarerEintragMaxWProM2: wattProM2(0),
+  solarAnteilOhneAusrichtung: 0,
   speicherkapazitaetWhProM2K: whProM2K(50),
   sommerBasistemperaturC: celsius(24),
 };
@@ -33,6 +34,7 @@ export const TEST_RAUM: Raumtyp = {
   belegung: { vonStunde: 8, bisStunde: 18, nurWerktags: false },
   beachtetFerien: false,
   stosslueftungNoetig: false,
+  feuchtelastStossweise: false,
 };
 
 export function testEinstellungen(ueberschreibungen: Partial<Einstellungen> = {}): Einstellungen {
@@ -49,6 +51,18 @@ export const SAMSTAG = 1; // 1. August 2026
 export const MONTAG = 3; // 3. August 2026
 
 /**
+ * Unauffällige Standardluft für Modelltests.
+ *
+ * Der Taupunkt von 5 °C liegt unter jeder Schwüle- und Kondensationsschwelle.
+ * Der Wind entspricht dem Referenzwind des Modells, bei dem die konfigurierten
+ * Zeitkonstanten unverändert gelten – so prüfen Modelltests das thermische
+ * Verhalten und nicht nebenbei die Windkorrektur. Tests zu Feuchte und Wind
+ * setzen die Werte ausdrücklich.
+ */
+const TROCKEN_TAUPUNKT_C = 5;
+const REFERENZ_WIND_M_PRO_S = 2;
+
+/**
  * Baut eine Stundenreihe aus Aussentemperaturen.
  * Startet am angegebenen Augusttag um `startStunde` Uhr.
  */
@@ -57,12 +71,18 @@ export function erzeugeWetterstunden(
   startStunde = 0,
   globalstrahlung = 0,
   tag: number = SAMSTAG,
+  zusatz: Partial<Wetterstunde> = {},
 ): Wetterstunde[] {
   return aussentemperaturen.map((temperatur, index) => ({
     zeit: new Date(2026, 7, tag, startStunde + index, 0, 0),
     aussentemperaturC: celsius(temperatur),
     globalstrahlungWProM2: wattProM2(globalstrahlung),
+    direktstrahlungNormalWProM2: wattProM2(0),
+    diffusstrahlungWProM2: wattProM2(0),
     relativeFeuchteProzent: 50,
+    taupunktC: celsius(TROCKEN_TAUPUNKT_C),
+    windgeschwindigkeitMProS: meterProSekunde(REFERENZ_WIND_M_PRO_S),
+    ...zusatz,
   }));
 }
 
@@ -72,11 +92,12 @@ export function erzeugeTagesgang(
   mittelwertC: number,
   amplitudeK: number,
   startTag: number = SAMSTAG,
+  zusatz: Partial<Wetterstunde> = {},
 ): Wetterstunde[] {
   const temperaturen: number[] = [];
   for (let stunde = 0; stunde < tage * 24; stunde++) {
     const phase = ((stunde % 24) - 15) / 24;
     temperaturen.push(mittelwertC + amplitudeK * Math.cos(2 * Math.PI * phase));
   }
-  return erzeugeWetterstunden(temperaturen, 0, 0, startTag);
+  return erzeugeWetterstunden(temperaturen, 0, 0, startTag, zusatz);
 }

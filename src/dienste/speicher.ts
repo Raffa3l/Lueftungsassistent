@@ -8,6 +8,8 @@ import {
 import { findeStation } from '../konfiguration/stationen.ts';
 import { findeGebaeudetyp } from '../konfiguration/gebaeudetypen.ts';
 import { findeRaumtyp } from '../konfiguration/raumtypen.ts';
+import { findeAusrichtung } from '../konfiguration/ausrichtungen.ts';
+import { findeSonnenschutz } from '../konfiguration/sonnenschutz.ts';
 
 /**
  * Persistenz der Nutzereinstellungen im LocalStorage.
@@ -51,6 +53,8 @@ export function ladeEinstellungen(): Einstellungen {
         STANDARD_EINSTELLUNGEN.minRaumtemperaturC,
       ),
     ),
+    ausrichtungId: gueltigeAusrichtungId(roh['ausrichtungId']),
+    sonnenschutzId: gueltigeSonnenschutzId(roh['sonnenschutzId']),
     nachtauskuehlung:
       typeof roh['nachtauskuehlung'] === 'boolean'
         ? roh['nachtauskuehlung']
@@ -167,6 +171,18 @@ function gueltigeGebaeudetypId(wert: unknown): string {
 
 function gueltigeRaumtypId(wert: unknown): string {
   return typeof wert === 'string' && findeRaumtyp(wert) ? wert : STANDARD_EINSTELLUNGEN.raumtypId;
+}
+
+function gueltigeAusrichtungId(wert: unknown): string {
+  return typeof wert === 'string' && findeAusrichtung(wert)
+    ? wert
+    : STANDARD_EINSTELLUNGEN.ausrichtungId;
+}
+
+function gueltigeSonnenschutzId(wert: unknown): string {
+  return typeof wert === 'string' && findeSonnenschutz(wert)
+    ? wert
+    : STANDARD_EINSTELLUNGEN.sonnenschutzId;
 }
 
 function gueltigeZahl(

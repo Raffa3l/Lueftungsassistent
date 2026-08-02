@@ -76,6 +76,10 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
+  /* Die Erklärblasen sind absolut positioniert und zählen auch unsichtbar zur
+     Scrollbreite. Ohne dies bekäme die Seite einen waagrechten Scrollbalken,
+     sobald eine Blase über den Rand hinausragt. */
+  overflow-x: clip;
 }
 
 h1,
@@ -212,7 +216,7 @@ main {
   max-width: 44rem;
 }
 
-/* Stosslüftungshinweis: ergänzt die Empfehlung, ohne sie zu überstimmen */
+/* Zusatzhinweise: ergänzen die Empfehlung, ohne sie zu überstimmen */
 .empfehlung__zusatz {
   display: flex;
   align-items: flex-start;
@@ -224,6 +228,11 @@ main {
   border: 1px solid var(--rand);
   background: var(--flaeche-seite);
   font-size: 0.9375rem;
+}
+
+/* Folgen mehrere Hinweise aufeinander, rücken sie enger zusammen. */
+.empfehlung__zusatz + .empfehlung__zusatz {
+  margin-top: 0.5rem;
 }
 
 .empfehlung__zusatz svg {
@@ -351,6 +360,118 @@ legend {
   font-size: 0.8125rem;
   color: var(--schrift-sekundaer);
   margin: 0;
+}
+
+/* Beschriftung plus Infofeld auf einer Zeile. */
+.feld__kopf {
+  display: flex;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * Infofeld: erklärt die Physik hinter einer Zahl.
+ *
+ * Die Blase öffnet auf drei Wegen, damit sie nicht nur der Maus gehört:
+ * Hover, Tastaturfokus und Klick/Tipp (über aria-expanded).
+ * ------------------------------------------------------------------ */
+.infofeld {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-inline-start: 0.3rem;
+}
+
+.infofeld__knopf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 1.35rem;
+  height: 1.35rem;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--schrift-sekundaer);
+  cursor: help;
+}
+
+/* Unsichtbare Trefferfläche von 44 px, ohne das Layout aufzublähen. */
+.infofeld__knopf::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+}
+
+.infofeld__knopf svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.infofeld__knopf:hover,
+.infofeld__knopf[aria-expanded='true'] {
+  color: var(--serie-innen);
+}
+
+.infofeld__blase {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  /* Deckend und deutlich abgesetzt – die Blase legt sich über den Fliesstext. */
+  border: 1px solid var(--schrift-gedaempft);
+  background: var(--flaeche-karte);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  color: var(--schrift-primaer);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: start;
+  white-space: normal;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.infofeld__knopf:hover + .infofeld__blase,
+.infofeld__knopf:focus-visible + .infofeld__blase,
+.infofeld__knopf[aria-expanded='true'] + .infofeld__blase {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .infofeld__blase {
+    transition: none;
+  }
+}
+
+/* Vorschlag aus dem adaptiven Komfortmodell – ein Angebot, keine Ansage. */
+.feld__vorschlag {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--rand);
+  background: var(--flaeche-seite);
+  font-size: 0.8125rem;
+}
+
+.feld__vorschlag[hidden] {
+  display: none;
 }
 
 select,

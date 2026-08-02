@@ -11,6 +11,7 @@
 import type {
   Celsius,
   Kelvin,
+  MeterProSekunde,
   Stunden,
   WattProM2,
   WhProM2K,
@@ -51,10 +52,24 @@ export interface Gebaeudetyp {
   zeitkonstanteOffenH: Stunden;
   /**
    * Maximaler solarer Wärmeeintrag in Watt pro Quadratmeter Bodenfläche bei
-   * voller Einstrahlung (Referenz: 800 W/m² Globalstrahlung). Enthält
-   * Fensterflächenanteil, Glasqualität und üblichen Sonnenschutz.
+   * voller Einstrahlung auf die Fensterebene (Referenz:
+   * `REFERENZ_FASSADENSTRAHLUNG_W_PRO_M2`) und **ohne Sonnenschutz**.
+   *
+   * Enthält Fensterflächenanteil und Glasqualität. Der Behang ist bewusst
+   * herausgelöst und wird separat gewählt – so bleiben Bausubstanz und
+   * Verschattung getrennt, wie schon Gebäude und Nutzung.
    */
   solarerEintragMaxWProM2: WattProM2;
+  /**
+   * Anteil des solaren Eintrags, der nicht an der Fensterausrichtung hängt –
+   * vor allem das Dach.
+   *
+   * Ein Dachgeschoss heizt sich auch mit Nordfenstern auf, weil die Sonne aufs
+   * Dach brennt; eine Wohnung im Mittelgeschoss nicht. Dieser Anteil wird
+   * weiterhin gegen die waagrechte Globalstrahlung gerechnet, der Rest gegen
+   * die Einstrahlung auf die Fassade.
+   */
+  solarAnteilOhneAusrichtung: number;
   /**
    * Wirksame Wärmespeicherfähigkeit in Wattstunden pro Quadratmeter und Kelvin.
    * Sie übersetzt eine Last in W/m² in einen Temperaturanstieg in K/h und ist
@@ -105,15 +120,40 @@ export interface Raumtyp {
    * steigt der CO₂-Gehalt sonst weit über das Zumutbare.
    */
   stosslueftungNoetig: boolean;
+  /**
+   * Fällt in dieser Nutzung stossweise viel Feuchte an – Duschen, Kochen,
+   * Wäschetrocknen?
+   *
+   * Diese Spitzen lassen sich nicht vorhersagen und gehen deshalb nicht in die
+   * stündliche Empfehlung ein; sie erscheinen als Merkposten beim Raumtyp. Ein
+   * Duschgang setzt rund ein halbes bis ein Kilogramm Wasser frei, ein Ständer
+   * nasser Wäsche zwei bis drei.
+   */
+  feuchtelastStossweise: boolean;
 }
 
 /** Eine Stunde Wetterdaten aus der Open-Meteo-API. */
 export interface Wetterstunde {
   zeit: Date;
   aussentemperaturC: Celsius;
-  /** Globalstrahlung in W/m², für den solaren Wärmeeintrag. */
+  /** Globalstrahlung auf die Waagrechte in W/m² – Dachflächen und Bodenreflex. */
   globalstrahlungWProM2: WattProM2;
+  /** Direktstrahlung senkrecht zur Sonnenrichtung (DNI), für die Fassadenprojektion. */
+  direktstrahlungNormalWProM2: WattProM2;
+  /** Diffuse Himmelsstrahlung auf die Waagrechte (DHI). */
+  diffusstrahlungWProM2: WattProM2;
   relativeFeuchteProzent: number;
+  /**
+   * Taupunkt der Aussenluft. Er misst die absolute Feuchte in einer Grösse, die
+   * sich direkt mit Raumtemperaturen vergleichen lässt: Liegt er über der
+   * Temperatur einer Fläche, schlägt sich dort Wasser nieder.
+   */
+  taupunktC: Celsius;
+  /**
+   * Windgeschwindigkeit in 10 m Höhe. Sie bestimmt mit, wie schnell ein offenes
+   * Fenster die Raumluft austauscht (siehe `thermischesModell.ts`).
+   */
+  windgeschwindigkeitMProS: MeterProSekunde;
 }
 
 /**
@@ -144,6 +184,10 @@ export interface Einstellungen {
   hystereseK: Kelvin;
   /** Untergrenze: darunter wird nicht weiter ausgekühlt. */
   minRaumtemperaturC: Celsius;
+  /** Himmelsrichtung der Hauptfensterfläche (siehe `konfiguration/ausrichtungen.ts`). */
+  ausrichtungId: string;
+  /** Art des Sonnenschutzes (siehe `konfiguration/sonnenschutz.ts`). */
+  sonnenschutzId: string;
   /** Nachtauskühlung (22–07 Uhr) als Strategie zulassen. */
   nachtauskuehlung: boolean;
   /** Selbst gepflegte schulfreie Zeiträume. */
@@ -158,6 +202,29 @@ export type Fensterstatus = 'oeffnen' | 'schliessen';
 /** Dringlichkeit steuert die farbliche Hervorhebung im Dashboard. */
 export type Dringlichkeit = 'hoch' | 'normal';
 
+/**
+ * Wovon ein Zusatzhinweis handelt.
+ *
+ * Die Art bestimmt das Symbol in der Oberfläche und die Rangfolge, in der
+ * mehrere Hinweise erscheinen (siehe `logik/lueftungslogik.ts`).
+ */
+export type Hinweisart = 'luftqualitaet' | 'feuchte' | 'wind' | 'kuehlung';
+
+/**
+ * Ein ergänzender Hinweis zur Empfehlung.
+ *
+ * Hinweise schränken die Empfehlung ein oder erklären sie, kehren sie aber nie
+ * um: «Fenster schliessen» bleibt «Fenster schliessen», auch wenn die
+ * Luftqualität kurzes Stosslüften verlangt.
+ */
+export interface Hinweis {
+  art: Hinweisart;
+  /** Ein Wort für die Stundentabelle, z. B. «stosslüften». */
+  kuerzel: string;
+  /** Ausformulierter Hinweis für die Empfehlungskarte. */
+  text: string;
+}
+
 /** Ergebnis der Lüftungsbewertung für eine einzelne Stunde. */
 export interface Empfehlung {
   status: Fensterstatus;
@@ -167,10 +234,10 @@ export interface Empfehlung {
   /** Begründung in einem Satz. */
   begruendung: string;
   /**
-   * Ergänzender Hinweis, der die Empfehlung nicht umkehrt, sondern einschränkt –
-   * derzeit die Stosslüftung wegen der Luftqualität in belegten Räumen.
+   * Ergänzende Hinweise in fester Rangfolge, leer wenn keiner zutrifft.
+   * Die Oberfläche zeigt nicht zwingend alle – die Reihenfolge entscheidet.
    */
-  zusatzhinweis?: string;
+  zusatzhinweise: Hinweis[];
 }
 
 /** Eine simulierte Stunde: Wetter + Raumtemperatur + Empfehlung. */

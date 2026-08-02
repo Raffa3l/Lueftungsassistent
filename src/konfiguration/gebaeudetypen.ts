@@ -8,6 +8,16 @@ import { celsius, stunden, wattProM2, whProM2K } from '../einheiten.ts';
  * ist, wie viel Sonne hereinkommt, wie viel Wärme die Masse aufnehmen kann. Was
  * an Wärme durch Personen und Geräte anfällt, steht beim Raumtyp.
  *
+ * Der solare Eintrag gilt **ohne Sonnenschutz** und bezogen auf die
+ * Einstrahlung in der Fensterebene. Der Behang wird separat gewählt
+ * (`sonnenschutz.ts`), die Ausrichtung ebenfalls (`ausrichtungen.ts`) – die
+ * Bausubstanz beschreibt nur, wie viel Fensterfläche und Glasqualität
+ * überhaupt vorhanden sind.
+ *
+ * `solarAnteilOhneAusrichtung` trennt davon den Teil ab, der nicht am Fenster
+ * hängt: Ein Dachgeschoss heizt sich auch mit Nordfenstern auf, weil die Sonne
+ * aufs Dach brennt – deshalb dort 0.55 gegenüber 0.10 im Mittelgeschoss.
+ *
  * Die Werte sind Erfahrungswerte für ein vereinfachtes Ein-Knoten-Modell und
  * bewusst als reine Daten abgelegt, damit sie ohne Codeänderung erweitert oder
  * nachjustiert werden können. Als Orientierung dienen die daraus abgeleiteten
@@ -23,7 +33,8 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     beschreibung: 'Dicke Mauern, viel Speichermasse, kaum gedämmt. Heizt sich langsam auf, bleibt lange kühl.',
     zeitkonstanteGeschlossenH: stunden(30),
     zeitkonstanteOffenH: stunden(10),
-    solarerEintragMaxWProM2: wattProM2(30),
+    solarerEintragMaxWProM2: wattProM2(60),
+    solarAnteilOhneAusrichtung: 0.1,
     speicherkapazitaetWhProM2K: whProM2K(90),
     sommerBasistemperaturC: celsius(23),
   },
@@ -33,7 +44,8 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     beschreibung: 'Backstein oder Beton, wenig Dämmung, mittlere Speichermasse. Der Klassiker im Schweizer Mittelland.',
     zeitkonstanteGeschlossenH: stunden(20),
     zeitkonstanteOffenH: stunden(7),
-    solarerEintragMaxWProM2: wattProM2(35),
+    solarerEintragMaxWProM2: wattProM2(70),
+    solarAnteilOhneAusrichtung: 0.1,
     speicherkapazitaetWhProM2K: whProM2K(70),
     sommerBasistemperaturC: celsius(24),
   },
@@ -43,7 +55,8 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     beschreibung: 'Massivbau mit nachträglicher Aussendämmung. Sehr träge – kühle Nächte wirken über Tage nach.',
     zeitkonstanteGeschlossenH: stunden(35),
     zeitkonstanteOffenH: stunden(9),
-    solarerEintragMaxWProM2: wattProM2(40),
+    solarerEintragMaxWProM2: wattProM2(80),
+    solarAnteilOhneAusrichtung: 0.1,
     speicherkapazitaetWhProM2K: whProM2K(100),
     sommerBasistemperaturC: celsius(24),
   },
@@ -53,7 +66,8 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     beschreibung: 'Sehr gut gedämmt, dichte Hülle, grosse Fensterflächen. Ohne Sonnenschutz droht Überhitzung.',
     zeitkonstanteGeschlossenH: stunden(24),
     zeitkonstanteOffenH: stunden(6),
-    solarerEintragMaxWProM2: wattProM2(42),
+    solarerEintragMaxWProM2: wattProM2(85),
+    solarAnteilOhneAusrichtung: 0.15,
     speicherkapazitaetWhProM2K: whProM2K(75),
     sommerBasistemperaturC: celsius(24.5),
   },
@@ -63,7 +77,8 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     beschreibung: 'Wenig Speichermasse: reagiert schnell auf Aussentemperatur – Lüften wirkt sofort, Hitze aber auch.',
     zeitkonstanteGeschlossenH: stunden(12),
     zeitkonstanteOffenH: stunden(4),
-    solarerEintragMaxWProM2: wattProM2(32),
+    solarerEintragMaxWProM2: wattProM2(65),
+    solarAnteilOhneAusrichtung: 0.2,
     speicherkapazitaetWhProM2K: whProM2K(40),
     sommerBasistemperaturC: celsius(25),
   },
@@ -73,7 +88,8 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     beschreibung: 'Geringe Speichermasse, grosse Dachfläche in der Sonne. Der kritischste Fall im Hochsommer.',
     zeitkonstanteGeschlossenH: stunden(7),
     zeitkonstanteOffenH: stunden(2.5),
-    solarerEintragMaxWProM2: wattProM2(48),
+    solarerEintragMaxWProM2: wattProM2(95),
+    solarAnteilOhneAusrichtung: 0.55,
     speicherkapazitaetWhProM2K: whProM2K(30),
     sommerBasistemperaturC: celsius(26),
   },

@@ -1,7 +1,7 @@
 import type { SimulationsStunde } from '../typen.ts';
 import { formatiereTemperatur, formatiereUhrzeit } from '../logik/format.ts';
 import { el, leere } from './dom.ts';
-import { symbolFuerStatus, symbolLuft } from './symbole.ts';
+import { symbolFuerHinweis, symbolFuerStatus } from './symbole.ts';
 
 /**
  * Stundenweise Übersicht der nächsten 24 Stunden.
@@ -60,15 +60,18 @@ function statusMarke(stunde: SimulationsStunde): HTMLElement {
     [symbolFuerStatus(stunde.empfehlung.status), offen ? 'öffnen' : 'schliessen'],
   );
 
-  if (!stunde.empfehlung.zusatzhinweis) return marke;
+  // In der schmalen Tabelle ist nur für den wichtigsten Hinweis Platz – die
+  // Rangfolge hat ihn nach vorn sortiert. Die ausführlichen Texte aller
+  // Hinweise stehen im Tooltip und in der Empfehlungskarte.
+  const hinweise = stunde.empfehlung.zusatzhinweise;
+  const wichtigster = hinweise[0];
+  if (!wichtigster) return marke;
 
-  // Belegte Räume brauchen zusätzlich kurze Stosslüftung – hier nur als
-  // Kürzel, die ausführliche Begründung steht in der Empfehlungskarte.
   return el('span', { class: 'status-gruppe' }, [
     marke,
-    el('span', { class: 'status-zusatz', title: stunde.empfehlung.zusatzhinweis }, [
-      symbolLuft(),
-      'stosslüften',
+    el('span', { class: 'status-zusatz', title: hinweise.map((h) => h.text).join(' ') }, [
+      symbolFuerHinweis(wichtigster.art),
+      wichtigster.kuerzel,
     ]),
   ]);
 }

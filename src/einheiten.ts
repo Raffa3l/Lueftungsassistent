@@ -49,6 +49,16 @@ export type WhProM2K = number & Markiert<'Wh/(m²K)'>;
 /** Zeitdauer in Stunden (nicht zu verwechseln mit einer Uhrzeit). */
 export type Stunden = number & Markiert<'h'>;
 
+/**
+ * Absolute Luftfeuchte: Gramm Wasser je Kilogramm trockener Luft.
+ * Sie bleibt beim Erwärmen und Abkühlen erhalten – anders als die relative
+ * Feuchte, die deshalb für Lüftungsentscheide untauglich ist.
+ */
+export type GrammProKg = number & Markiert<'g/kg'>;
+
+/** Windgeschwindigkeit. */
+export type MeterProSekunde = number & Markiert<'m/s'>;
+
 /* ------------------------------------------------------------------ *
  * Konstruktoren – zur Laufzeit ohne Wirkung, im Typsystem der Übergang
  * von einer blanken Zahl zu einer Grösse mit Einheit.
@@ -60,6 +70,8 @@ export const kelvinProStunde = (wert: number): KelvinProStunde => wert as Kelvin
 export const wattProM2 = (wert: number): WattProM2 => wert as WattProM2;
 export const whProM2K = (wert: number): WhProM2K => wert as WhProM2K;
 export const stunden = (wert: number): Stunden => wert as Stunden;
+export const grammProKg = (wert: number): GrammProKg => wert as GrammProKg;
+export const meterProSekunde = (wert: number): MeterProSekunde => wert as MeterProSekunde;
 
 /* ------------------------------------------------------------------ *
  * Rechnen mit Einheiten

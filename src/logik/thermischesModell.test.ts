@@ -7,7 +7,10 @@ import {
   schaetzeStartRaumtemperatur,
   simuliere,
   waermeeintragKProH,
+  solarlastWProM2,
   waermelastWProM2,
+  windfaktor,
+  zeitkonstanteOffenH,
 } from './thermischesModell.ts';
 import {
   erzeugeTagesgang,
@@ -18,8 +21,8 @@ import {
   TEST_RAUM,
 } from './testhelfer.ts';
 import { GEBAEUDETYPEN } from '../konfiguration/gebaeudetypen.ts';
-import { findeRaumtyp } from '../konfiguration/raumtypen.ts';
-import { celsius, kelvin, stunden, wattProM2, whProM2K } from '../einheiten.ts';
+import { findeRaumtyp, RAUMTYPEN } from '../konfiguration/raumtypen.ts';
+import { celsius, kelvin, meterProSekunde, stunden, wattProM2, whProM2K } from '../einheiten.ts';
 
 describe('waermelastWProM2', () => {
   // Testgebäude: 50 Wh/(m²K) Speicherkapazität, Testraum belegt von 08 bis 18 Uhr
@@ -105,6 +108,134 @@ describe('naechsteRaumtemperatur', () => {
 
     expect(ergebnis).toBeGreaterThanOrEqual(15);
     expect(ergebnis).toBeLessThan(28);
+  });
+});
+
+describe('solarlastWProM2 – Ausrichtung und Sonnenschutz', () => {
+  // Sonniges Gebäude ohne Dachanteil: der Eintrag hängt allein am Fenster.
+  const gebaeude = {
+    ...TEST_GEBAEUDE,
+    solarerEintragMaxWProM2: wattProM2(80),
+    solarAnteilOhneAusrichtung: 0,
+  };
+  const ZUERICH = { breitengrad: 47.37, laengengrad: 8.54 };
+
+  /** Klarer Augustnachmittag um 17 Uhr – die Sonne steht im Westen. */
+  const [nachmittag] = erzeugeWetterstunden([30], 17, 500, MONTAG, {
+    direktstrahlungNormalWProM2: wattProM2(750),
+    diffusstrahlungWProM2: wattProM2(120),
+  });
+
+  const lage = (azimut: number, schutz = 1) => ({
+    ...ZUERICH,
+    fassadenazimutGrad: azimut,
+    sonnenschutzFaktor: schutz,
+  });
+
+  it('belastet ein Westfenster am Nachmittag stärker als ein Ostfenster', () => {
+    const west = solarlastWProM2(nachmittag!, gebaeude, lage(270));
+    const ost = solarlastWProM2(nachmittag!, gebaeude, lage(90));
+
+    expect(west).toBeGreaterThan(ost);
+  });
+
+  it('lässt ein Nordfenster am kühlsten', () => {
+    const nord = solarlastWProM2(nachmittag!, gebaeude, lage(0));
+    const sued = solarlastWProM2(nachmittag!, gebaeude, lage(180));
+    const west = solarlastWProM2(nachmittag!, gebaeude, lage(270));
+
+    expect(nord).toBeLessThan(sued);
+    expect(nord).toBeLessThan(west);
+  });
+
+  it('senkt aussenliegender Sonnenschutz den Eintrag um ein Vielfaches', () => {
+    const ohne = solarlastWProM2(nachmittag!, gebaeude, lage(270, 1));
+    const innen = solarlastWProM2(nachmittag!, gebaeude, lage(270, 0.7));
+    const aussen = solarlastWProM2(nachmittag!, gebaeude, lage(270, 0.25));
+
+    expect(innen).toBeLessThan(ohne);
+    expect(aussen).toBeLessThan(innen);
+    // Faktor vier zwischen «nichts» und «aussen» – der stärkste Hebel.
+    expect(ohne / aussen).toBeCloseTo(4, 0);
+  });
+
+  it('lässt den Sonnenschutz den Dachanteil unberührt', () => {
+    // Ein Dachgeschoss heizt sich auch mit geschlossenen Storen auf.
+    const dach = { ...gebaeude, solarAnteilOhneAusrichtung: 1 };
+    const ohne = solarlastWProM2(nachmittag!, dach, lage(270, 1));
+    const aussen = solarlastWProM2(nachmittag!, dach, lage(270, 0.25));
+
+    expect(aussen).toBeCloseTo(ohne, 5);
+  });
+
+  it('rechnet ohne Lageangabe wie vor der Umstellung', () => {
+    // Rückfall auf die waagrechte Globalstrahlung: 500 von 800 W/m².
+    expect(solarlastWProM2(nachmittag!, gebaeude)).toBeCloseTo(80 * (500 / 800), 5);
+  });
+
+  it('gibt nachts keinen solaren Eintrag', () => {
+    const [nacht] = erzeugeWetterstunden([18], 2, 0, MONTAG);
+    expect(solarlastWProM2(nacht!, gebaeude, lage(270))).toBeCloseTo(0, 5);
+  });
+});
+
+describe('windfaktor und zeitkonstanteOffenH', () => {
+  it('lässt die konfigurierten Zeitkonstanten beim Referenzwind unverändert', () => {
+    expect(windfaktor(meterProSekunde(2))).toBeCloseTo(1, 10);
+    expect(zeitkonstanteOffenH(TEST_GEBAEUDE, meterProSekunde(2))).toBeCloseTo(
+      TEST_GEBAEUDE.zeitkonstanteOffenH,
+      10,
+    );
+  });
+
+  it('beschleunigt den Luftaustausch mit zunehmendem Wind', () => {
+    expect(windfaktor(meterProSekunde(0))).toBeLessThan(1);
+    expect(windfaktor(meterProSekunde(6))).toBeGreaterThan(1);
+    // Monoton: mehr Wind darf nie weniger Luftwechsel bedeuten.
+    expect(windfaktor(meterProSekunde(5))).toBeGreaterThan(windfaktor(meterProSekunde(3)));
+  });
+
+  it('verkürzt die Zeitkonstante bei Wind und verlängert sie bei Flaute', () => {
+    const beiFlaute = zeitkonstanteOffenH(TEST_GEBAEUDE, meterProSekunde(0));
+    const beiWind = zeitkonstanteOffenH(TEST_GEBAEUDE, meterProSekunde(8));
+
+    expect(beiWind).toBeLessThan(TEST_GEBAEUDE.zeitkonstanteOffenH);
+    expect(beiFlaute).toBeGreaterThan(TEST_GEBAEUDE.zeitkonstanteOffenH);
+  });
+
+  it('begrenzt den Faktor, weil am Fenster weniger ankommt als in 10 m Höhe', () => {
+    // Eine Sturmböe darf keine Auskühlung versprechen, die kein Raum zeigt.
+    expect(windfaktor(meterProSekunde(30))).toBe(windfaktor(meterProSekunde(15)));
+    expect(windfaktor(meterProSekunde(30))).toBeLessThanOrEqual(1.7);
+    expect(windfaktor(meterProSekunde(0))).toBeGreaterThanOrEqual(0.55);
+  });
+
+  it('kühlt einen Raum bei Wind schneller aus als bei Flaute', () => {
+    const [flaute] = erzeugeWetterstunden([18], 3, 0, MONTAG, {
+      windgeschwindigkeitMProS: meterProSekunde(0),
+    });
+    const [brise] = erzeugeWetterstunden([18], 3, 0, MONTAG, {
+      windgeschwindigkeitMProS: meterProSekunde(8),
+    });
+
+    const beiFlaute = naechsteRaumtemperatur(celsius(28), flaute!, TEST_GEBAEUDE, TEST_RAUM, true);
+    const beiBrise = naechsteRaumtemperatur(celsius(28), brise!, TEST_GEBAEUDE, TEST_RAUM, true);
+
+    expect(beiBrise).toBeLessThan(beiFlaute);
+  });
+
+  it('lässt geschlossene Fenster vom Wind unberührt', () => {
+    // Der Effekt auf die Fassade liegt unter der Genauigkeit des Modells.
+    const [flaute] = erzeugeWetterstunden([18], 3, 0, MONTAG, {
+      windgeschwindigkeitMProS: meterProSekunde(0),
+    });
+    const [sturm] = erzeugeWetterstunden([18], 3, 0, MONTAG, {
+      windgeschwindigkeitMProS: meterProSekunde(20),
+    });
+
+    expect(naechsteRaumtemperatur(celsius(28), sturm!, TEST_GEBAEUDE, TEST_RAUM, false)).toBe(
+      naechsteRaumtemperatur(celsius(28), flaute!, TEST_GEBAEUDE, TEST_RAUM, false),
+    );
   });
 });
 
@@ -329,10 +460,10 @@ describe('simuliere – Raumtypen', () => {
 
     const unterricht = stunden.find((s) => s.zeit.getHours() === 10)!;
     expect(unterricht.empfehlung.status).toBe('schliessen');
-    expect(unterricht.empfehlung.zusatzhinweis).toContain('stosslüften');
+    expect(unterricht.empfehlung.zusatzhinweise[0]?.kuerzel).toBe('stosslüften');
 
     const nacht = stunden.find((s) => s.zeit.getHours() === 2)!;
-    expect(nacht.empfehlung.zusatzhinweis).toBeUndefined();
+    expect(nacht.empfehlung.zusatzhinweise).toEqual([]);
   });
 
   it('hält ein Schulzimmer in den Ferien kühler als im Betrieb', () => {
@@ -361,7 +492,7 @@ describe('simuliere – Raumtypen', () => {
     const { stunden } = simuliere(wetter, TEST_GEBAEUDE, schulzimmer, inFerien, celsius(26));
 
     for (const stunde of stunden) {
-      expect(stunde.empfehlung.zusatzhinweis).toBeUndefined();
+      expect(stunde.empfehlung.zusatzhinweise).toEqual([]);
     }
   });
 
@@ -387,8 +518,84 @@ describe('simuliere – Raumtypen', () => {
     const { stunden } = simuliere(wetter, TEST_GEBAEUDE, wohnung, einstellungen, celsius(26));
 
     for (const stunde of stunden) {
-      expect(stunde.empfehlung.zusatzhinweis).toBeUndefined();
+      // Der Kühlungshinweis darf erscheinen – die Wohnung braucht bloss keine
+      // Stosslüftung wegen der Luftqualität.
+      expect(stunde.empfehlung.zusatzhinweise.map((h) => h.art)).not.toContain('luftqualitaet');
     }
+  });
+});
+
+/**
+ * Grundeigenschaft der Lüftungsstrategie: Länger lüften ist nie schlechter.
+ *
+ * Analytisch folgt das direkt aus dem Modell. Öffnen lohnt, wenn
+ *
+ *   (T_aussen − T_innen) / τ_offen + q  <  (T_aussen − T_innen) / τ_zu + q
+ *
+ * also wenn (T_aussen − T_innen) · (1/τ_offen − 1/τ_zu) < 0. Weil τ_offen immer
+ * kleiner ist als τ_zu, ist der zweite Faktor positiv – die Wärmelast q kürzt
+ * sich vollständig heraus. Übrig bleibt genau die Bedingung T_aussen < T_innen,
+ * auf der die Lüftungslogik beruht.
+ *
+ * Diese Tests sichern die Eigenschaft ab: Wer an der Lüftungslogik oder an den
+ * Zeitkonstanten schraubt, darf sie nicht unbemerkt verlieren.
+ */
+describe('Lüftungsstrategie – länger lüften ist nie schlechter', () => {
+  it('kühlt bei kühlerer Aussenluft in jeder Gebäude- und Raumkombination besser', () => {
+    // Voller Mittag mit Sonne: die Lasten wirken so stark wie überhaupt möglich.
+    const [mittag] = erzeugeWetterstunden([24], 12, 800, MONTAG);
+    const startC = celsius(25); // nur 1 Grad wärmer als draussen
+
+    for (const gebaeude of GEBAEUDETYPEN) {
+      for (const raum of RAUMTYPEN) {
+        const offen = naechsteRaumtemperatur(startC, mittag!, gebaeude, raum, true);
+        const zu = naechsteRaumtemperatur(startC, mittag!, gebaeude, raum, false);
+
+        // Beide dürfen steigen – entscheidend ist, dass offen langsamer steigt.
+        expect(offen).toBeLessThan(zu);
+      }
+    }
+  });
+
+  it('gilt auch bei extremer Wärmelast, wenn der Raum dabei wärmer wird', () => {
+    // Schulklasse im Dachgeschoss bei voller Sonne, draussen nur 1 Grad kühler.
+    const dachgeschoss = GEBAEUDETYPEN.find((typ) => typ.id === 'dachwohnung')!;
+    const schulzimmer = findeRaumtyp('schulzimmer')!;
+    const [mittag] = erzeugeWetterstunden([24], 11, 800, MONTAG);
+
+    const offen = naechsteRaumtemperatur(celsius(25), mittag!, dachgeschoss, schulzimmer, true);
+    const zu = naechsteRaumtemperatur(celsius(25), mittag!, dachgeschoss, schulzimmer, false);
+
+    // Der Raum heizt sich in beiden Fällen auf – Lüften bremst es nur.
+    expect(offen).toBeGreaterThan(25);
+    expect(offen).toBeLessThan(zu);
+  });
+
+  it('macht eine tiefere Untergrenze über mehrere Tage nie wärmer', () => {
+    // Die Untergrenze ist der Punkt, an dem die App das Auskühlen abbricht.
+    const wetter = erzeugeTagesgang(6, 24, 8, MONTAG);
+    const schulzimmer = findeRaumtyp('schulzimmer')!;
+
+    const spitze = (untergrenzeC: number): number => {
+      const { stunden } = simuliere(
+        wetter,
+        TEST_GEBAEUDE,
+        schulzimmer,
+        testEinstellungen({ minRaumtemperaturC: celsius(untergrenzeC) }),
+        celsius(26),
+      );
+      return Math.max(...stunden.slice(-24).map((stunde) => stunde.raumtemperaturC));
+    };
+
+    // Monoton: je früher geschlossen wird, desto wärmer der letzte Tag.
+    const grenzen = [20, 22, 24, 26.5];
+    const spitzen = grenzen.map(spitze);
+
+    for (let i = 1; i < spitzen.length; i++) {
+      expect(spitzen[i]!).toBeGreaterThanOrEqual(spitzen[i - 1]!);
+    }
+    // Der Unterschied ist keine Rundungsgrösse, sondern spürbar.
+    expect(spitzen.at(-1)!).toBeGreaterThan(spitzen[0]! + 0.5);
   });
 });
 

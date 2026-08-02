@@ -1,4 +1,4 @@
-import type { Fensterstatus } from '../typen.ts';
+import type { Fensterstatus, Hinweisart } from '../typen.ts';
 import { svgEl } from './dom.ts';
 
 /**
@@ -71,7 +71,51 @@ export function symbolMond(): SVGSVGElement {
   return symbol(['M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z']);
 }
 
+/** Tropfen – steht für Luftfeuchtigkeit und Kondensationsgefahr. */
+export function symbolTropfen(): SVGSVGElement {
+  return symbol(['M12 3.5c3.5 4 6 7.1 6 10a6 6 0 0 1-12 0c0-2.9 2.5-6 6-10z']);
+}
+
+/** Böen – stehen für den Wind draussen, im Unterschied zur Raumluft. */
+export function symbolWind(): SVGSVGElement {
+  return symbol(['M2 9h13a3 3 0 1 0-3-3', 'M2 15h9a2.5 2.5 0 1 1-2.5 2.5']);
+}
+
+/** Rotor – steht für Luftbewegung im Raum (Ventilator). */
+export function symbolVentilator(): SVGSVGElement {
+  return symbol([
+    'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
+    'M12 12V6',
+    'M12 12l5.2 3',
+    'M12 12l-5.2 3',
+    'M12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
+  ]);
+}
+
+/** Fragezeichen im Kreis – öffnet die Erklärung zur Physik dahinter. */
+export function symbolInfo(): SVGSVGElement {
+  return symbol([
+    'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
+    'M9.8 9.3a2.3 2.3 0 1 1 2.7 2.6v1.6',
+    'M12.5 16.8h.01',
+  ]);
+}
+
 /** Passendes Fenstersymbol zum Status. */
 export function symbolFuerStatus(status: Fensterstatus): SVGSVGElement {
   return status === 'oeffnen' ? symbolFensterOffen() : symbolFensterZu();
+}
+
+/** Passendes Symbol zur Art eines Zusatzhinweises. */
+export function symbolFuerHinweis(art: Hinweisart): SVGSVGElement {
+  switch (art) {
+    case 'luftqualitaet':
+      return symbolLuft();
+    case 'feuchte':
+      return symbolTropfen();
+    case 'wind':
+      return symbolWind();
+    case 'kuehlung':
+      return symbolVentilator();
+  }
 }

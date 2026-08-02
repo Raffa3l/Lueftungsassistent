@@ -3,6 +3,8 @@ import { fasseStatusbloeckeZusammen } from '../logik/lueftungslogik.ts';
 import { celsius } from '../einheiten.ts';
 import { formatiereTemperatur, formatiereUhrzeit } from '../logik/format.ts';
 import { el, leere, svgEl } from './dom.ts';
+import { infofeld } from './infofeld.ts';
+import { INFO } from './infotexte.ts';
 
 /**
  * Tagesverlauf Innen gegen Aussen als Liniendiagramm.
@@ -443,6 +445,7 @@ export function baueLegende(
     el('span', { class: 'legende__eintrag' }, [
       schalter,
       el('label', { for: 'vergleich-schalter' }, ['Vergleich: ohne Lüften']),
+      infofeld(INFO.vergleichOhneLueften.thema, INFO.vergleichOhneLueften.text),
     ]),
   );
 }

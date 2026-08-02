@@ -26,12 +26,17 @@ npm run dev
   vom Altbau mit dicken Mauern bis zum Dachgeschoss.
 - **Raumtyp** bestimmt, wie viel Wärme die Nutzung selbst erzeugt: Wohnung,
   Schulzimmer oder Büro – mit den jeweiligen Belegungszeiten.
+- **Fensterausrichtung und Sonnenschutz** – die beiden stärksten Einflüsse auf
+  die sommerliche Überhitzung.
 - **Ferienkalender** für Schulzimmer und Büro: nationale Feiertage rechnet die App
   selbst aus, Ferienzeiträume trägt man selbst ein.
 - **Aktuelle Empfehlung** mit Begründung und dem voraussichtlichen nächsten Wechsel.
 - **Temperaturverlauf** über 48 Stunden: Aussen gegen Innen, mit farblich
   hinterlegten Lüftungsfenstern und optionaler Vergleichslinie «ohne Lüften».
 - **Stundentabelle** für die nächsten 24 Stunden.
+- **Erklärfelder** hinter den berechneten Werten und Schwellwerten: Ein
+  Fragezeichen öffnet die Physik und die Annahme dahinter – bei Mauszeiger,
+  Tastaturfokus und Tipp.
 - **Einstellungen** (Wunschtemperatur, Schaltdifferenz, Untergrenze,
   Nachtauskühlung, Ferien) bleiben im Browser gespeichert.
 
@@ -82,14 +87,50 @@ dT/dt = (T_aussen − T_innen) / τ + q
 ```
 
 - `τ` ist die thermische Zeitkonstante des Gebäudetyps – gross bei viel
-  Speichermasse, klein bei Leichtbau. Bei offenem Fenster gilt ein kleineres `τ`.
-- `q` sind die Wärmeeinträge: Sonne durch die Fenster (aus der Globalstrahlung der
-  Prognose) und die Nutzung des Raums (Personen, Geräte, Licht).
+  Speichermasse, klein bei Leichtbau. Bei offenem Fenster gilt ein kleineres `τ`,
+  das zusätzlich vom Wind abhängt: Er treibt den Luftwechsel.
+- `q` sind die Wärmeeinträge: Sonne durch die Fenster und die Nutzung des Raums
+  (Personen, Geräte, Licht).
 
 Die Lasten werden in Watt pro Quadratmeter gepflegt und über die Speicherkapazität
 des Gebäudes in Kelvin pro Stunde umgerechnet. Erst dadurch greifen Bau und
 Nutzung ineinander: Eine Schulklasse mit 35 W/m² treibt die Temperatur im
 Leichtbau um knapp 0.9 Grad pro Stunde hoch, im schweren Altbau nur um 0.4.
+
+Daraus ergeben sich Dämpfung und Verzögerung der Tageswelle von selbst: Ein
+Altbau nimmt rund 13 % der Aussenschwankung auf und hinkt ihr etwa 6 Stunden
+hinterher, ein Dachgeschoss fast 50 % bei gut 3 Stunden.
+
+Die Simulation läuft sieben Tage vor dem aktuellen Zeitpunkt an, damit der
+Startwert kaum noch durchschlägt. Dieselben Vortage speisen den Vorschlag für
+die Wunschtemperatur.
+
+### Sonne, Ausrichtung und Sonnenschutz
+
+Für ein Fenster zählt nicht die Strahlung auf den Boden, sondern der
+Einfallswinkel auf die Fassade. Die App rechnet den Sonnenstand deshalb selbst –
+Deklination, Zeitgleichung, Stundenwinkel – und projiziert die Direktstrahlung
+auf die Fensterebene, dazu der halbe Himmel als Streulicht und die
+Bodenreflexion. An klaren Sommertagen ergibt das:
+
+| Fassade | Spitze | wann | |
+|---|---:|---|---|
+| Nord | 100–150 W/m² | – | nur Streulicht |
+| Süd | 400–500 W/m² | mittags | die hohe Sonne streift nur |
+| Ost | 600–700 W/m² | morgens | der Raum ist noch kühl |
+| **West** | **600–700 W/m²** | **nachmittags** | **der kritische Fall** |
+
+Gerechnet wird lokal und nicht über den API-Parameter für geneigte Flächen,
+damit ein Wechsel der Ausrichtung keinen Netzabruf auslöst.
+
+Der **Sonnenschutz** ist davon getrennt und der grössere Hebel: Zwischen
+aussenliegenden Storen (g ≈ 0.12) und blankem Fenster (g ≈ 0.65) liegt Faktor
+vier. Innenliegende Vorhänge bringen wenig, weil die Strahlung die Scheibe
+bereits durchquert hat und im Raum zu Wärme wird.
+
+Was nicht am Fenster hängt, trennt `solarAnteilOhneAusrichtung` ab: Ein
+Dachgeschoss heizt sich auch mit Nordfenstern auf, weil die Sonne aufs Dach
+brennt – dort helfen auch geschlossene Storen nur begrenzt.
 
 ### Einheiten im Typsystem
 
@@ -98,20 +139,14 @@ Temperaturen, Differenzen, Flächenlasten, Änderungsraten. Alle sind `number`,
 und genau das war beim Umbau auf Raumtypen die riskanteste Stelle.
 
 `einheiten.ts` gibt jeder Grösse eine Marke, die nur im Typsystem existiert
-(`Celsius`, `Kelvin`, `KelvinProStunde`, `WattProM2`, `WhProM2K`, `Stunden`).
-Wer in der Konfiguration Speicherkapazität und solaren Eintrag vertauscht,
-bekommt einen Compilerfehler statt eines um den Faktor drei falschen Verlaufs.
+(`Celsius`, `Kelvin`, `KelvinProStunde`, `WattProM2`, `WhProM2K`, `Stunden`,
+`GrammProKg`, `MeterProSekunde`). Wer in der Konfiguration Speicherkapazität und
+solaren Eintrag vertauscht, bekommt einen Compilerfehler statt eines um den
+Faktor drei falschen Verlaufs.
 Gerechnet wird über Helfer wie `rateAusLast` oder `temperaturPlus`, die nur
 physikalisch gültige Verknüpfungen zulassen.
 
 Zur Laufzeit kostet das nichts: Die Marken existieren im Bundle nicht.
-
-Daraus ergeben sich Dämpfung und Verzögerung der Tageswelle von selbst: Ein
-Altbau nimmt rund 13 % der Aussenschwankung auf und hinkt ihr etwa 6 Stunden
-hinterher, ein Dachgeschoss fast 50 % bei gut 3 Stunden.
-
-Die Simulation läuft drei Tage vor dem aktuellen Zeitpunkt an, damit der
-Startwert kaum noch durchschlägt.
 
 ## Ferien und freie Tage
 
@@ -148,6 +183,40 @@ verlangt sie auch bei 35 Grad draussen, und in fünf Minuten kommt kaum Wärme
 herein. Die Empfehlung wird dadurch nicht umgekehrt; Stosslüften ist eine kurze
 Ausnahme, kein Dauerzustand.
 
+### Feuchte, Wind und Kühlung
+
+Der Entscheid selbst hängt allein an der Temperatur. Feuchte und Wind erzeugen
+nur **Zusatzhinweise** und kehren die Empfehlung nie um – kühlere Aussenluft
+kühlt auch dann, wenn sie feucht ist:
+
+- **Tauwasser:** Trifft schwüle Aussenluft auf einen nachtausgekühlten Raum,
+  schlägt sich Wasser an kühlen Wänden und Böden nieder. Dann heisst es kurz und
+  kräftig lüften statt Fenster dauerhaft offen.
+- **Schwüle:** Ab einem Aussentaupunkt von 16 Grad fühlt sich die Luft auch nach
+  dem Lüften schwer an. Massgeblich ist die absolute Feuchte, nicht die relative:
+  Nachtluft mit 16 Grad und 95 % enthält weniger Wasser als Raumluft mit 26 Grad
+  und 60 % – sie trocknet den Raum also, statt ihn zu befeuchten.
+- **Wind:** Er treibt den Luftwechsel am offenen Fenster und verkürzt damit die
+  Zeitkonstante des Raums. Zwischen Flaute und steifer Brise liegt rund Faktor
+  drei; bei geschlossenen Fenstern bleibt er ohne Wirkung.
+- **Luftbewegung im Raum:** Müssen die Fenster zu bleiben, senkt ein Ventilator
+  das Temperaturempfinden um zwei bis drei Grad, ohne Wärme hereinzulassen. Nur
+  bei trockener Extremhitze über 35 Grad kippt das – dann wärmt die bewegte Luft
+  mehr, als die Verdunstung kühlt.
+
+### Wunschtemperatur
+
+Als behaglich empfundene Innentemperaturen steigen mit dem Wetter der Vortage.
+Die App rechnet den Wert nach dem adaptiven Komfortmodell (EN 16798-1, Grundlage
+auch von SIA 180) aus und **schlägt** ihn im Einstellungsformular vor –
+übernehmen muss ihn die Nutzerin selbst. Nach einer Hitzewoche liegt er bei rund
+26 Grad statt bei den voreingestellten 24.
+
+Nach oben ist der Vorschlag bei 26.5 Grad gedeckelt. Die Gerade der Norm liefe
+darüber hinaus weiter, beschreibt dort aber, was Menschen bei anhaltender Hitze
+noch *ertragen* – nicht, was als Zielwert taugt. Ohne den Deckel würde der
+Vorschlag das Kühlen bei Extremwetter praktisch abschalten.
+
 ## Datenquelle
 
 [Open-Meteo](https://open-meteo.com/) – kostenlos, ohne Registrierung, CORS-fähig,
@@ -159,9 +228,10 @@ für die Schweiz auf Basis des Modells ICON-CH von MeteoSchweiz.
 npm run test:run
 ```
 
-Abgedeckt sind das thermische Modell, die Lüftungslogik, die Raumtypen mit
-Belegung und Ferienkalender, die Feiertagsberechnung, die Persistenz und die
-Umwandlung der API-Antwort.
+Abgedeckt sind das thermische Modell samt Wind- und Sonnenkorrektur, der
+Sonnenstand, die Lüftungslogik, die Feuchterechnungen, das adaptive
+Komfortmodell, die Raumtypen mit Belegung und Ferienkalender, die
+Feiertagsberechnung, die Persistenz und die Umwandlung der API-Antwort.
 
 ## Deployment
 
@@ -180,11 +250,26 @@ Settings → Pages → Source: «GitHub Actions».
 
 ## Grenzen des Modells
 
-Die Raumtemperatur ist berechnet, nicht gemessen. Sonnenschutz, Stockwerk,
-Fensterfläche und Ausrichtung wirken zusätzlich und sind im Modell nur pauschal
-enthalten. Eine Heizung kennt das Modell nicht – es ist für den Sommer gebaut.
+Die Raumtemperatur ist berechnet, nicht gemessen. Ausrichtung und Sonnenschutz
+gehen eigens ein; Stockwerk, Fenstergrösse und die Verschattung durch
+Nachbarhäuser, Dachvorsprünge oder Bäume stecken nur pauschal im Gebäudetyp.
+Eine Heizung kennt das Modell nicht – es ist für den Sommer gebaut.
+
+Bei Räumen mit Fenstern nach mehreren Seiten zählt die grösste Fläche. Eine
+Aufteilung wäre rechenbar, verlangt dem Nutzer aber eine Schätzung ab, die er
+selten belastbar geben kann.
 
 Die Belegung folgt festen Zeitfenstern. Halbe Klassen, Randstunden, Homeoffice-Tage
 oder eine Sitzung im Nebenraum kennt das Modell nicht – es rechnet mit voller oder
 gar keiner Belegung. Kantonale Feiertage und Schulferien wirken nur, soweit sie
 eingetragen sind.
+
+Die **Innenfeuchte** wird nicht gerechnet. Die Feuchtehinweise beurteilen die
+Aussenluft; die Raumfeuchte wird nur dort, wo es nötig ist, aus dem Aussentaupunkt
+und der Raumtemperatur geschätzt. Duschen, Kochen und Wäschetrocknen lassen sich
+nicht vorhersagen und stecken deshalb als Merkposten im Raumtyp statt in der
+stündlichen Empfehlung.
+
+Der **Wind** stammt aus 10 Meter Messhöhe. Wie viel davon am Fenster ankommt,
+hängt an Bebauung, Stockwerk und Ausrichtung – die Korrektur ist deshalb bewusst
+gedämpft und nach oben begrenzt.

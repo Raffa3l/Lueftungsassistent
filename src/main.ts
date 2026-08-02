@@ -4,10 +4,13 @@ import type { Einstellungen, SimulationsStunde, Wetterstunde } from './typen.ts'
 import { findeStation } from './konfiguration/stationen.ts';
 import { findeGebaeudetyp } from './konfiguration/gebaeudetypen.ts';
 import { findeFreienTag, findeRaumtyp } from './konfiguration/raumtypen.ts';
+import { findeAusrichtung } from './konfiguration/ausrichtungen.ts';
+import { findeSonnenschutz } from './konfiguration/sonnenschutz.ts';
 import { STANDARD_EINSTELLUNGEN } from './konfiguration/standardwerte.ts';
 import { ladeEinstellungen, setzeEinstellungenZurueck, speichereEinstellungen } from './dienste/speicher.ts';
 import { jetztInStationszeit, ladeWetterdaten, WetterdatenFehler } from './dienste/wetterdienst.ts';
 import { findeIndexFuerJetzt, simuliere } from './logik/thermischesModell.ts';
+import { vorgeschlageneZieltemperaturC } from './logik/komfort.ts';
 import { baueEinstellungsformular, type EinstellungenSteuerung } from './ui/einstellungen.ts';
 import { rendereDashboard } from './ui/dashboard.ts';
 import { baueLegende, Temperaturdiagramm } from './ui/diagramm.ts';
@@ -114,7 +117,28 @@ function zeichne(): void {
   const raum = findeRaumtyp(zustand.einstellungen.raumtypId);
   if (!station || !gebaeude || !raum || zustand.wetter.length === 0) return;
 
-  const { stunden } = simuliere(zustand.wetter, gebaeude, raum, zustand.einstellungen);
+  // Ausrichtung und Sonnenschutz gehen als «Solarlage» ins Modell. Beides ändert
+  // sich ohne Netzabruf – der Sonnenstand wird lokal gerechnet.
+  const ausrichtung =
+    findeAusrichtung(zustand.einstellungen.ausrichtungId) ??
+    findeAusrichtung(STANDARD_EINSTELLUNGEN.ausrichtungId)!;
+  const sonnenschutz =
+    findeSonnenschutz(zustand.einstellungen.sonnenschutzId) ??
+    findeSonnenschutz(STANDARD_EINSTELLUNGEN.sonnenschutzId)!;
+
+  const { stunden } = simuliere(
+    zustand.wetter,
+    gebaeude,
+    raum,
+    zustand.einstellungen,
+    undefined,
+    {
+      breitengrad: station.breitengrad,
+      laengengrad: station.laengengrad,
+      fassadenazimutGrad: ausrichtung.azimutGrad,
+      sonnenschutzFaktor: sonnenschutz.faktor,
+    },
+  );
   const jetztIndex = findeIndexFuerJetzt(stunden, jetztInStationszeit());
 
   const jetztZeit = stunden[jetztIndex]?.zeit;
@@ -130,6 +154,12 @@ function zeichne(): void {
   diagramm.aktualisiere({ stunden, jetztIndex, zeigeVergleich: zustand.zeigeVergleich });
   rendereStundentabelle(tabellenBehaelter, stunden, jetztIndex);
   aktualisiereSeitentitel(stunden, jetztIndex, station.name);
+
+  // Der Vorschlag hängt am Wetter der Vortage, nicht an den Einstellungen –
+  // er wird deshalb aus den Rohdaten gerechnet, nicht aus der Simulation.
+  einstellungenSteuerung.zeigeTemperaturvorschlag(
+    jetztZeit ? vorgeschlageneZieltemperaturC(zustand.wetter, jetztZeit) : undefined,
+  );
 }
 
 /** Der Seitentitel zeigt die Empfehlung – sichtbar schon im Browser-Tab. */

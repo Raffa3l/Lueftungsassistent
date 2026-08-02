@@ -7,7 +7,9 @@ describe('wandleAntwortUm', () => {
       time: ['2026-08-01T00:00', '2026-08-01T01:00', '2026-08-01T02:00'],
       temperature_2m: [18.2, 17.6, 17.1],
       relative_humidity_2m: [78, 81, 83],
+      dew_point_2m: [14.4, 14.3, 14.2],
       shortwave_radiation: [0, 0, 0],
+      wind_speed_10m: [1.8, 2.4, 3.1],
     },
   };
 
@@ -17,6 +19,30 @@ describe('wandleAntwortUm', () => {
     expect(stunden).toHaveLength(3);
     expect(stunden[0]?.aussentemperaturC).toBe(18.2);
     expect(stunden[0]?.relativeFeuchteProzent).toBe(78);
+    expect(stunden[0]?.taupunktC).toBe(14.4);
+    expect(stunden[0]?.windgeschwindigkeitMProS).toBe(1.8);
+  });
+
+  it('rechnet den Taupunkt nach, wenn die API ihn nicht liefert', () => {
+    const stunden = wandleAntwortUm({
+      hourly: {
+        time: ['2026-08-01T00:00'],
+        temperature_2m: [25],
+        relative_humidity_2m: [80],
+      },
+    });
+
+    // 25 °C bei 80 % rF ergeben rund 21.3 °C Taupunkt.
+    expect(stunden[0]?.taupunktC).toBeCloseTo(21.3, 0);
+  });
+
+  it('nimmt ohne Windangabe Windstille an', () => {
+    const stunden = wandleAntwortUm({
+      hourly: { time: ['2026-08-01T00:00'], temperature_2m: [25] },
+    });
+
+    // Konservativ: Das Modell kühlt dann langsamer aus als in Wirklichkeit.
+    expect(stunden[0]?.windgeschwindigkeitMProS).toBe(0);
   });
 
   it('interpretiert die Zeitstempel als Wanduhrzeit der Station', () => {

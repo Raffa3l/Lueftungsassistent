@@ -19,12 +19,17 @@ import {
   temperaturPlus,
   type Celsius,
   type KelvinProStunde,
+  type MeterProSekunde,
   type Stunden,
   type WattProM2,
 } from '../einheiten.ts';
-import { REFERENZ_GLOBALSTRAHLUNG_W_PRO_M2 } from '../konfiguration/standardwerte.ts';
+import {
+  REFERENZ_FASSADENSTRAHLUNG_W_PRO_M2,
+  REFERENZ_GLOBALSTRAHLUNG_W_PRO_M2,
+} from '../konfiguration/standardwerte.ts';
 import { istBelegt, type Kalender } from '../konfiguration/raumtypen.ts';
 import { bewerteStunde } from './lueftungslogik.ts';
+import { fassadenstrahlungWProM2, sonnenstand } from './sonnenstand.ts';
 
 /**
  * Vereinfachtes thermisches Gebäudemodell (Ein-Knoten-RC-Modell).
@@ -32,7 +37,8 @@ import { bewerteStunde } from './lueftungslogik.ts';
  * Grundgleichung:  dT/dt = (T_aussen − T_innen) / τ + q
  *
  *   τ  thermische Zeitkonstante in Stunden (Wärmeträgheit inkl. Speichermasse);
- *      hängt davon ab, ob die Fenster offen sind
+ *      hängt davon ab, ob die Fenster offen sind – und bei offenen Fenstern
+ *      zusätzlich vom Wind, der den Luftwechsel treibt (siehe `windfaktor`)
  *   q  Wärmeeinträge in K/h – Sonne durch die Fenster und Nutzung (Personen,
  *      Geräte, Licht). Die Lasten werden in W/m² gepflegt und über die
  *      Speicherkapazität des Gebäudes in K/h umgerechnet.
@@ -53,6 +59,70 @@ export interface Simulationsergebnis {
 }
 
 /**
+ * Wo der Raum liegt und wie er verschattet ist – alles, was den solaren Eintrag
+ * über die Bausubstanz hinaus bestimmt.
+ *
+ * Wird die Lage weggelassen, rechnet das Modell wie vor der Einführung der
+ * Ausrichtung mit der waagrechten Globalstrahlung und ohne Behang. Neue
+ * Aufrufer im Produktivcode müssen sie übergeben, sonst fehlt der stärkste
+ * Hebel gegen die Überhitzung.
+ */
+export interface Solarlage {
+  breitengrad: number;
+  laengengrad: number;
+  /** Azimut der Hauptfensterfläche: 0 = Nord, 90 = Ost, 180 = Süd, 270 = West. */
+  fassadenazimutGrad: number;
+  /** Anteil des Eintrags, der trotz Sonnenschutz hereinkommt (1 = kein Schutz). */
+  sonnenschutzFaktor: number;
+}
+
+/**
+ * Solarer Wärmeeintrag in Watt pro Quadratmeter Bodenfläche.
+ *
+ * Zwei Anteile, weil nicht alles am Fenster hängt:
+ *   - über die Fassade: Einstrahlung in der Fensterebene, durch den
+ *     Sonnenschutz abgemindert
+ *   - unabhängig von der Ausrichtung: vor allem das Dach, gerechnet gegen die
+ *     waagrechte Globalstrahlung und vom Behang unberührt
+ */
+export function solarlastWProM2(
+  wetter: Wetterstunde,
+  gebaeude: Gebaeudetyp,
+  lage?: Solarlage,
+): WattProM2 {
+  const waagrecht = Math.min(
+    1,
+    Math.max(0, anteil(wetter.globalstrahlungWProM2, REFERENZ_GLOBALSTRAHLUNG_W_PRO_M2)),
+  );
+
+  // Ohne Lageangabe bleibt es beim waagrechten Bezug und ohne Behang.
+  if (!lage) return skaliereLast(gebaeude.solarerEintragMaxWProM2, waagrecht);
+
+  const stand = sonnenstand(wetter.zeit, lage.breitengrad, lage.laengengrad);
+  const aufFassade = fassadenstrahlungWProM2(
+    stand,
+    {
+      direktNormalWProM2: wetter.direktstrahlungNormalWProM2,
+      diffusWProM2: wetter.diffusstrahlungWProM2,
+      globalWProM2: wetter.globalstrahlungWProM2,
+    },
+    lage.fassadenazimutGrad,
+  );
+
+  const fassadenanteil = Math.min(
+    1,
+    Math.max(0, anteil(aufFassade, REFERENZ_FASSADENSTRAHLUNG_W_PRO_M2)),
+  );
+
+  const ohneAusrichtung = gebaeude.solarAnteilOhneAusrichtung;
+  const ueberFenster =
+    (1 - ohneAusrichtung) * fassadenanteil * lage.sonnenschutzFaktor;
+  const ueberDach = ohneAusrichtung * waagrecht;
+
+  return skaliereLast(gebaeude.solarerEintragMaxWProM2, ueberFenster + ueberDach);
+}
+
+/**
  * Wärmelast einer Stunde in Watt pro Quadratmeter Bodenfläche –
  * Sonne durch die Fenster plus Nutzung (Personen, Geräte, Licht).
  */
@@ -61,12 +131,9 @@ export function waermelastWProM2(
   gebaeude: Gebaeudetyp,
   raumtyp: Raumtyp,
   kalender?: Kalender,
+  lage?: Solarlage,
 ): WattProM2 {
-  const strahlungsanteil = Math.min(
-    1,
-    Math.max(0, anteil(wetter.globalstrahlungWProM2, REFERENZ_GLOBALSTRAHLUNG_W_PRO_M2)),
-  );
-  const solar = skaliereLast(gebaeude.solarerEintragMaxWProM2, strahlungsanteil);
+  const solar = solarlastWProM2(wetter, gebaeude, lage);
 
   const nutzung = istBelegt(wetter.zeit, raumtyp, kalender)
     ? raumtyp.belegungslastWProM2
@@ -86,11 +153,60 @@ export function waermeeintragKProH(
   gebaeude: Gebaeudetyp,
   raumtyp: Raumtyp,
   kalender?: Kalender,
+  lage?: Solarlage,
 ): KelvinProStunde {
   return rateAusLast(
-    waermelastWProM2(wetter, gebaeude, raumtyp, kalender),
+    waermelastWProM2(wetter, gebaeude, raumtyp, kalender, lage),
     gebaeude.speicherkapazitaetWhProM2K,
   );
+}
+
+/**
+ * Windgeschwindigkeit, bei der die konfigurierten Zeitkonstanten gelten –
+ * ungefähr das Schweizer Mittel in 10 m Messhöhe.
+ */
+const REFERENZ_WIND_M_PRO_S = 2;
+
+/**
+ * Formparameter der Windkurve: Bei dieser Geschwindigkeit verdoppelt sich der
+ * Luftwechsel gegenüber Windstille.
+ */
+const WIND_SKALA_M_PRO_S = 3;
+
+/**
+ * Grenzen des Windfaktors. Gemessen wird in 10 m Höhe, angeströmt wird das
+ * Fenster – im bebauten Gebiet kommen dort typisch nur 30 bis 60 Prozent davon
+ * an. Ohne Begrenzung würde eine Sturmböe eine Auskühlung versprechen, die kein
+ * Raum je zeigt.
+ */
+const WINDFAKTOR_MIN = 0.55;
+const WINDFAKTOR_MAX = 1.7;
+
+/**
+ * Wie stark der Wind den Luftwechsel bei offenem Fenster gegenüber dem
+ * Referenzwind verändert.
+ *
+ * Der Volumenstrom setzt sich aus einem Auftriebsanteil (Temperaturdifferenz)
+ * und einem Windanteil zusammen, der etwa linear mit der Geschwindigkeit
+ * wächst. Zwischen Windstille und steifer Brise liegt damit rund Faktor drei –
+ * der Grund, warum dieselbe Nacht einmal auskühlt und einmal nicht.
+ */
+export function windfaktor(windMProS: MeterProSekunde): number {
+  const roh =
+    (1 + windMProS / WIND_SKALA_M_PRO_S) / (1 + REFERENZ_WIND_M_PRO_S / WIND_SKALA_M_PRO_S);
+  return Math.min(WINDFAKTOR_MAX, Math.max(WINDFAKTOR_MIN, roh));
+}
+
+/**
+ * Zeitkonstante bei offenem Fenster unter Berücksichtigung des Windes.
+ * Mehr Luftwechsel bedeutet eine kleinere Zeitkonstante – der Raum folgt der
+ * Aussentemperatur schneller.
+ */
+export function zeitkonstanteOffenH(
+  gebaeude: Gebaeudetyp,
+  windMProS: MeterProSekunde,
+): Stunden {
+  return stunden(gebaeude.zeitkonstanteOffenH / windfaktor(windMProS));
 }
 
 /**
@@ -106,13 +222,16 @@ export function naechsteRaumtemperatur(
   fensterOffen: boolean,
   kalender?: Kalender,
   schrittH: Stunden = stunden(1),
+  lage?: Solarlage,
 ): Celsius {
-  const zeitkonstanteH = fensterOffen ? gebaeude.zeitkonstanteOffenH : gebaeude.zeitkonstanteGeschlossenH;
+  const zeitkonstanteH = fensterOffen
+    ? zeitkonstanteOffenH(gebaeude, wetter.windgeschwindigkeitMProS)
+    : gebaeude.zeitkonstanteGeschlossenH;
 
   // Beharrungstemperatur T_∞ = T_aussen + q·τ
   const beharrungstemperaturC = temperaturPlus(
     wetter.aussentemperaturC,
-    anstiegUeber(waermeeintragKProH(wetter, gebaeude, raumtyp, kalender), zeitkonstanteH),
+    anstiegUeber(waermeeintragKProH(wetter, gebaeude, raumtyp, kalender, lage), zeitkonstanteH),
   );
 
   // T(t+Δt) = T_∞ + (T(t) − T_∞) · e^(−Δt/τ)
@@ -164,6 +283,7 @@ export function simuliere(
   raumtyp: Raumtyp,
   einstellungen: Einstellungen,
   startRaumtemperaturC = schaetzeStartRaumtemperatur(wetter, gebaeude),
+  lage?: Solarlage,
 ): Simulationsergebnis {
   const stunden: SimulationsStunde[] = [];
   let raumC = startRaumtemperaturC;
@@ -183,6 +303,8 @@ export function simuliere(
       vorherigerStatus,
       raumBelegt: istBelegt(stunde.zeit, raumtyp, kalender),
       stosslueftungNoetig: raumtyp.stosslueftungNoetig,
+      taupunktAussenC: stunde.taupunktC,
+      windgeschwindigkeitMProS: stunde.windgeschwindigkeitMProS,
     });
 
     stunden.push({
@@ -194,7 +316,16 @@ export function simuliere(
 
     // Zustand auf die nächste Stunde fortschreiben.
     const fensterOffen = empfehlung.status === 'oeffnen';
-    raumC = naechsteRaumtemperatur(raumC, stunde, gebaeude, raumtyp, fensterOffen, kalender);
+    raumC = naechsteRaumtemperatur(
+      raumC,
+      stunde,
+      gebaeude,
+      raumtyp,
+      fensterOffen,
+      kalender,
+      undefined,
+      lage,
+    );
     raumOhneLueftungC = naechsteRaumtemperatur(
       raumOhneLueftungC,
       stunde,
@@ -202,6 +333,8 @@ export function simuliere(
       raumtyp,
       false,
       kalender,
+      undefined,
+      lage,
     );
     vorherigerStatus = empfehlung.status;
   }

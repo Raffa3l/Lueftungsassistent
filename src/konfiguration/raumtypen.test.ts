@@ -38,6 +38,13 @@ describe('RAUMTYPEN', () => {
     expect(findeRaumtyp('buero')!.stosslueftungNoetig).toBe(true);
     expect(findeRaumtyp('wohnung')!.stosslueftungNoetig).toBe(false);
   });
+
+  it('kennt die stossweise Feuchtelast nur in der Wohnung', () => {
+    // Duschen, Kochen und Wäschetrocknen gibt es weder im Schulzimmer noch im Büro.
+    expect(findeRaumtyp('wohnung')!.feuchtelastStossweise).toBe(true);
+    expect(findeRaumtyp('schulzimmer')!.feuchtelastStossweise).toBe(false);
+    expect(findeRaumtyp('buero')!.feuchtelastStossweise).toBe(false);
+  });
 });
 
 describe('findeRaumtyp', () => {

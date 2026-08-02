@@ -3,13 +3,21 @@ import { findeNaechstenWechsel } from '../logik/lueftungslogik.ts';
 import { celsius } from '../einheiten.ts';
 import { formatiereTemperatur, formatiereZeitpunkt } from '../logik/format.ts';
 import { el, leere } from './dom.ts';
-import { symbolFuerStatus, symbolLuft, symbolSonne, symbolThermometer, symbolUhr } from './symbole.ts';
+import { symbolFuerHinweis, symbolFuerStatus, symbolSonne, symbolThermometer, symbolUhr } from './symbole.ts';
+import { infofeld } from './infofeld.ts';
+import { INFO, INFO_HINWEIS } from './infotexte.ts';
 
 /**
  * Empfehlungskarte: die eine Aussage, wegen der die App aufgerufen wird –
  * «Fenster öffnen» oder «Fenster schliessen», mit Begründung und den drei
  * wichtigsten Zahlen.
  */
+
+/**
+ * Mehr als zwei Zusatzhinweise überdecken die eigentliche Empfehlung. Welche
+ * beiden das sind, entscheidet die Rangfolge in `logik/lueftungslogik.ts`.
+ */
+const MAX_HINWEISE = 2;
 
 export interface DashboardDaten {
   stunden: readonly SimulationsStunde[];
@@ -50,11 +58,12 @@ export function rendereDashboard(behaelter: HTMLElement, daten: DashboardDaten):
     el('p', { class: 'empfehlung__begruendung' }, [empfehlung.begruendung]),
   );
 
-  if (empfehlung.zusatzhinweis) {
+  for (const hinweis of empfehlung.zusatzhinweise.slice(0, MAX_HINWEISE)) {
+    const erklaerung = INFO_HINWEIS[hinweis.art];
     behaelter.append(
       el('p', { class: 'empfehlung__zusatz' }, [
-        symbolLuft(),
-        el('span', {}, [empfehlung.zusatzhinweis]),
+        symbolFuerHinweis(hinweis.art),
+        el('span', {}, [hinweis.text, ' ', infofeld(erklaerung.thema, erklaerung.text)]),
       ]),
     );
   }
@@ -70,12 +79,19 @@ export function rendereDashboard(behaelter: HTMLElement, daten: DashboardDaten):
 
   behaelter.append(
     el('ul', { class: 'kennzahlen' }, [
-      kennzahl(symbolSonne(), 'Draussen', formatiereTemperatur(jetzt.aussentemperaturC), tagesspanne(stunden, jetztIndex)),
+      kennzahl(
+        symbolSonne(),
+        'Draussen',
+        formatiereTemperatur(jetzt.aussentemperaturC),
+        tagesspanne(stunden, jetztIndex),
+        INFO.aussentemperatur,
+      ),
       kennzahl(
         symbolThermometer(),
         'Drinnen (berechnet)',
         formatiereTemperatur(jetzt.raumtemperaturC),
         vergleichshinweis(jetzt),
+        INFO.raumtemperatur,
       ),
       kennzahl(
         symbolUhr(),
@@ -92,9 +108,14 @@ function kennzahl(
   bezeichnung: string,
   wert: string,
   zusatz: string,
+  erklaerung?: { thema: string; text: string },
 ): HTMLElement {
   return el('li', { class: 'kennzahl' }, [
-    el('span', { class: 'kennzahl__bezeichnung' }, [symbol, bezeichnung]),
+    el('span', { class: 'kennzahl__bezeichnung' }, [
+      symbol,
+      bezeichnung,
+      erklaerung ? infofeld(erklaerung.thema, erklaerung.text) : undefined,
+    ]),
     el('span', { class: 'kennzahl__wert' }, [wert]),
     el('span', { class: 'kennzahl__zusatz' }, [zusatz]),
   ]);

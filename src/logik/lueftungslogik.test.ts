@@ -6,8 +6,8 @@ import {
   istNachtstunde,
 } from './lueftungslogik.ts';
 import { testEinstellungen } from './testhelfer.ts';
-import type { SimulationsStunde } from '../typen.ts';
-import { celsius, kelvin, wattProM2 } from '../einheiten.ts';
+import type { Empfehlung, Hinweisart, SimulationsStunde } from '../typen.ts';
+import { celsius, kelvin, meterProSekunde, wattProM2 } from '../einheiten.ts';
 
 describe('istNachtstunde', () => {
   it('erkennt das Nachtfenster von 22:00 bis 06:59', () => {
@@ -168,6 +168,11 @@ describe('bewerteStunde – Nachtauskühlung', () => {
   });
 });
 
+/** Die Arten der Zusatzhinweise – Tests prüfen gezielt eine davon, nicht den Text. */
+function arten(empfehlung: Empfehlung): Hinweisart[] {
+  return empfehlung.zusatzhinweise.map((hinweis) => hinweis.art);
+}
+
 describe('bewerteStunde – Stosslüftung in belegten Räumen', () => {
   const einstellungen = testEinstellungen({ hystereseK: kelvin(2), minRaumtemperaturC: celsius(20) });
   const hitze = {
@@ -181,19 +186,22 @@ describe('bewerteStunde – Stosslüftung in belegten Räumen', () => {
   it('ergänzt den Hinweis, wenn ein belegter Raum die Fenster zu haben soll', () => {
     const empfehlung = bewerteStunde({ ...hitze, raumBelegt: true, stosslueftungNoetig: true });
 
-    // Die Empfehlung wird nicht umgekehrt – der Hinweis kommt dazu.
+    // Die Empfehlung wird nicht umgekehrt – der Hinweis kommt dazu. Neben der
+    // Luftqualität meldet sich die Kühlung, weil es über der Wunschtemperatur
+    // liegt; die Rangfolge stellt die Luftqualität nach vorn.
     expect(empfehlung.status).toBe('schliessen');
-    expect(empfehlung.zusatzhinweis).toContain('stosslüften');
+    expect(arten(empfehlung)).toEqual(['luftqualitaet', 'kuehlung']);
+    expect(empfehlung.zusatzhinweise[0]?.text).toContain('stosslüften');
   });
 
   it('gibt keinen Hinweis, wenn der Raum leer steht', () => {
     const empfehlung = bewerteStunde({ ...hitze, raumBelegt: false, stosslueftungNoetig: true });
-    expect(empfehlung.zusatzhinweis).toBeUndefined();
+    expect(empfehlung.zusatzhinweise).toEqual([]);
   });
 
-  it('gibt keinen Hinweis, wenn die Nutzung ihn nicht verlangt', () => {
+  it('gibt keinen Stosslüftungshinweis, wenn die Nutzung ihn nicht verlangt', () => {
     const empfehlung = bewerteStunde({ ...hitze, raumBelegt: true, stosslueftungNoetig: false });
-    expect(empfehlung.zusatzhinweis).toBeUndefined();
+    expect(arten(empfehlung)).not.toContain('luftqualitaet');
   });
 
   it('gibt keinen Hinweis, wenn ohnehin gelüftet werden soll', () => {
@@ -205,7 +213,7 @@ describe('bewerteStunde – Stosslüftung in belegten Räumen', () => {
     });
 
     expect(empfehlung.status).toBe('oeffnen');
-    expect(empfehlung.zusatzhinweis).toBeUndefined();
+    expect(empfehlung.zusatzhinweise).toEqual([]);
   });
 
   it('hängt den Hinweis auch an die Untergrenzen- und die Nachtregel', () => {
@@ -224,12 +232,153 @@ describe('bewerteStunde – Stosslüftung in belegten Räumen', () => {
       stosslueftungNoetig: true,
     });
 
-    expect(anUntergrenze.zusatzhinweis).toContain('stosslüften');
-    expect(nachts.zusatzhinweis).toContain('stosslüften');
+    expect(anUntergrenze.zusatzhinweise[0]?.art).toBe('luftqualitaet');
+    expect(nachts.zusatzhinweise[0]?.art).toBe('luftqualitaet');
   });
 
   it('bleibt ohne Angaben zur Belegung unverändert', () => {
-    expect(bewerteStunde(hitze).zusatzhinweis).toBeUndefined();
+    expect(bewerteStunde(hitze).zusatzhinweise).toEqual([]);
+  });
+});
+
+describe('bewerteStunde – Kühlungshinweis bei geschlossenen Fenstern', () => {
+  const einstellungen = testEinstellungen({ zielTemperaturC: celsius(24) });
+  const hitze = {
+    aussentemperaturC: celsius(33),
+    raumtemperaturC: celsius(28),
+    stundeDesTages: 14,
+    einstellungen,
+    vorherigerStatus: 'schliessen' as const,
+  };
+
+  it('empfiehlt Luftbewegung, wenn ein belegter Raum über der Wunschtemperatur liegt', () => {
+    const empfehlung = bewerteStunde({ ...hitze, raumBelegt: true });
+
+    expect(empfehlung.status).toBe('schliessen');
+    expect(arten(empfehlung)).toContain('kuehlung');
+    expect(empfehlung.zusatzhinweise[0]?.text).toContain('Ventilator');
+  });
+
+  it('schweigt, solange die Wunschtemperatur eingehalten ist', () => {
+    const empfehlung = bewerteStunde({
+      ...hitze,
+      raumtemperaturC: celsius(23),
+      raumBelegt: true,
+    });
+
+    expect(arten(empfehlung)).not.toContain('kuehlung');
+  });
+
+  it('schweigt im leeren Raum – der Hinweis richtet sich an Menschen', () => {
+    expect(arten(bewerteStunde({ ...hitze, raumBelegt: false }))).not.toContain('kuehlung');
+  });
+
+  it('rät bei trockener Extremhitze zum Trinken statt zum Ventilator', () => {
+    // 38 °C im Raum, dazu ein tiefer Aussentaupunkt: Die geschätzte
+    // Raumfeuchte liegt weit unter 40 %, der Ventilator wärmt dann eher.
+    const empfehlung = bewerteStunde({
+      ...hitze,
+      aussentemperaturC: celsius(40),
+      raumtemperaturC: celsius(38),
+      raumBelegt: true,
+      taupunktAussenC: celsius(8),
+    });
+
+    expect(empfehlung.zusatzhinweise[0]?.text).toContain('Trinken');
+  });
+
+  it('bleibt bei feuchter Extremhitze beim Ventilator', () => {
+    // Gleiche Temperatur, aber schwüle Luft: Hier ist die Verdunstung der
+    // begrenzende Faktor, und der Ventilator hilft weiterhin.
+    const empfehlung = bewerteStunde({
+      ...hitze,
+      aussentemperaturC: celsius(40),
+      raumtemperaturC: celsius(38),
+      raumBelegt: true,
+      taupunktAussenC: celsius(24),
+    });
+
+    expect(empfehlung.zusatzhinweise[0]?.text).toContain('Ventilator');
+  });
+});
+
+describe('bewerteStunde – Feuchte- und Windhinweise beim Öffnen', () => {
+  const einstellungen = testEinstellungen({ hystereseK: kelvin(2) });
+  const lueften = {
+    aussentemperaturC: celsius(20),
+    raumtemperaturC: celsius(26),
+    stundeDesTages: 20,
+    einstellungen,
+    vorherigerStatus: 'schliessen' as const,
+  };
+
+  it('warnt vor Tauwasser, wenn schwüle Luft auf einen kühlen Raum trifft', () => {
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      raumtemperaturC: celsius(21),
+      aussentemperaturC: celsius(18),
+      taupunktAussenC: celsius(20.5),
+    });
+
+    // Der Entscheid bleibt «öffnen» – der Hinweis schränkt nur ein.
+    expect(empfehlung.status).toBe('oeffnen');
+    expect(arten(empfehlung)).toContain('feuchte');
+    expect(empfehlung.zusatzhinweise[0]?.text).toContain('kurz und kräftig');
+  });
+
+  it('nennt schwüle Luft beim Namen, ohne vom Lüften abzuraten', () => {
+    const empfehlung = bewerteStunde({ ...lueften, taupunktAussenC: celsius(18) });
+
+    expect(empfehlung.status).toBe('oeffnen');
+    expect(empfehlung.zusatzhinweise[0]?.text).toContain('schwül');
+  });
+
+  it('gibt bei Tauwassergefahr nicht zusätzlich den Schwülehinweis', () => {
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      raumtemperaturC: celsius(21),
+      aussentemperaturC: celsius(18),
+      taupunktAussenC: celsius(20.5),
+    });
+
+    expect(arten(empfehlung).filter((art) => art === 'feuchte')).toHaveLength(1);
+  });
+
+  it('schweigt bei trockener Aussenluft', () => {
+    const empfehlung = bewerteStunde({ ...lueften, taupunktAussenC: celsius(8) });
+    expect(arten(empfehlung)).not.toContain('feuchte');
+  });
+
+  it('empfiehlt Querlüften, sobald spürbarer Wind weht', () => {
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      windgeschwindigkeitMProS: meterProSekunde(5),
+    });
+
+    expect(arten(empfehlung)).toContain('wind');
+  });
+
+  it('schweigt bei schwachem Wind', () => {
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      windgeschwindigkeitMProS: meterProSekunde(2),
+    });
+
+    expect(arten(empfehlung)).not.toContain('wind');
+  });
+
+  it('ordnet Feuchte vor Wind', () => {
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      taupunktAussenC: celsius(18),
+      windgeschwindigkeitMProS: meterProSekunde(6),
+    });
+
+    expect(arten(empfehlung)).toEqual(['feuchte', 'wind']);
+  });
+
+  it('kommt ohne Feuchte- und Windangaben aus', () => {
+    expect(bewerteStunde(lueften).zusatzhinweise).toEqual([]);
   });
 });
 
@@ -239,10 +388,20 @@ function reiheAusStatus(status: readonly ('oeffnen' | 'schliessen')[]): Simulati
     zeit: new Date(2026, 7, 1, index),
     aussentemperaturC: celsius(20),
     globalstrahlungWProM2: wattProM2(0),
+    direktstrahlungNormalWProM2: wattProM2(0),
+    diffusstrahlungWProM2: wattProM2(0),
     relativeFeuchteProzent: 50,
+    taupunktC: celsius(5),
+    windgeschwindigkeitMProS: meterProSekunde(2),
     raumtemperaturC: celsius(24),
     raumtemperaturOhneLueftungC: celsius(24),
-    empfehlung: { status: s, dringlichkeit: 'normal', titel: '', begruendung: '' },
+    empfehlung: {
+      status: s,
+      dringlichkeit: 'normal',
+      titel: '',
+      begruendung: '',
+      zusatzhinweise: [],
+    },
   }));
 }
 

@@ -3,10 +3,19 @@ import type {
   Einstellungen,
   Empfehlung,
   Fensterstatus,
+  Hinweis,
+  Hinweisart,
   SimulationsStunde,
 } from '../typen.ts';
-import { temperaturDifferenz, type Celsius, type Kelvin } from '../einheiten.ts';
+import {
+  celsius,
+  temperaturDifferenz,
+  type Celsius,
+  type Kelvin,
+  type MeterProSekunde,
+} from '../einheiten.ts';
 import { NACHT_BEGINN_STUNDE, NACHT_ENDE_STUNDE } from '../konfiguration/standardwerte.ts';
+import { drohtKondensation, istSchwuel, relativeFeuchteProzent } from './feuchte.ts';
 import { formatiereDifferenz, formatiereTemperatur } from './format.ts';
 
 /** Eingangsgrössen für die Bewertung einer einzelnen Stunde. */
@@ -26,6 +35,13 @@ export interface BewertungsEingabe {
   raumBelegt?: boolean;
   /** Verlangt die Nutzung regelmässiges Stosslüften (Luftqualität)? */
   stosslueftungNoetig?: boolean;
+  /**
+   * Taupunkt der Aussenluft. Ohne Angabe entfallen die Feuchtehinweise – der
+   * Lüftungsentscheid selbst bleibt davon unberührt.
+   */
+  taupunktAussenC?: Celsius;
+  /** Windgeschwindigkeit draussen. Ohne Angabe entfällt der Querlüftungshinweis. */
+  windgeschwindigkeitMProS?: MeterProSekunde;
 }
 
 /** Ist die Stunde Teil des Nachtfensters (22:00–06:59)? */
@@ -43,10 +59,10 @@ export function istNachtstunde(stundeDesTages: number): boolean {
  *  3. Aussenluft kühler als Raumluft (mit Hysterese) → öffnen
  *  4. sonst → schliessen (draussen gleich warm oder wärmer)
  *
- * Bleiben die Fenster zu und ist der Raum belegt und auf Stosslüftung
- * angewiesen, wird die Empfehlung um einen entsprechenden Hinweis ergänzt.
- * Sie wird dadurch nicht umgekehrt: Stosslüften ist eine kurze Ausnahme,
- * kein Dauerzustand.
+ * Der Entscheid selbst hängt allein an der Temperatur. Feuchte und Wind
+ * erzeugen nur Zusatzhinweise und kehren die Empfehlung nie um – kühlere
+ * Aussenluft kühlt auch dann, wenn sie feucht ist, und Stosslüften bleibt eine
+ * kurze Ausnahme statt eines Dauerzustands.
  */
 export function bewerteStunde(eingabe: BewertungsEingabe): Empfehlung {
   const { aussentemperaturC, raumtemperaturC, stundeDesTages, einstellungen, vorherigerStatus } = eingabe;
@@ -54,16 +70,17 @@ export function bewerteStunde(eingabe: BewertungsEingabe): Empfehlung {
   const differenzK = temperaturDifferenz(raumtemperaturC, aussentemperaturC);
   const nacht = istNachtstunde(stundeDesTages);
 
-  // Gilt für alle «schliessen»-Empfehlungen: In dicht belegten Räumen verlangt
-  // die Luftqualität trotzdem kurzes Stosslüften.
-  const stosslueften = eingabe.raumBelegt === true && eingabe.stosslueftungNoetig === true;
+  // Hinweise werden getrennt nach Fensterzustand gesammelt: Sie hängen nicht
+  // davon ab, welche der Regeln unten am Ende greift.
+  const hinweiseZu = hinweiseBeiGeschlossenenFenstern(eingabe);
+  const hinweiseOffen = hinweiseBeiOffenenFenstern(eingabe);
 
   // 1. Weiteres Auskühlen wäre unangenehm.
   if (raumtemperaturC <= einstellungen.minRaumtemperaturC) {
     return geschlossen(
       `Innen sind es ${formatiereTemperatur(raumtemperaturC)} – das ist bereits an der eingestellten Untergrenze. Weiter auskühlen lohnt sich nicht.`,
       'normal',
-      stosslueften,
+      hinweiseZu,
     );
   }
 
@@ -72,7 +89,7 @@ export function bewerteStunde(eingabe: BewertungsEingabe): Empfehlung {
     return geschlossen(
       'Die Nachtauskühlung ist in den Einstellungen deaktiviert – nachts bleiben die Fenster zu.',
       'normal',
-      stosslueften,
+      hinweiseZu,
     );
   }
 
@@ -84,6 +101,7 @@ export function bewerteStunde(eingabe: BewertungsEingabe): Empfehlung {
       dringlichkeit: dringlichkeitOeffnen(raumtemperaturC, differenzK, einstellungen, nacht),
       titel: 'Fenster öffnen',
       begruendung: begruendungOeffnen(raumtemperaturC, differenzK, einstellungen, nacht),
+      zusatzhinweise: ordneHinweise(hinweiseOffen),
     };
   }
 
@@ -91,28 +109,169 @@ export function bewerteStunde(eingabe: BewertungsEingabe): Empfehlung {
   return geschlossen(
     begruendungSchliessen(differenzK),
     differenzK < -1 ? 'hoch' : 'normal',
-    stosslueften,
+    hinweiseZu,
   );
 }
 
-/** Baut eine «schliessen»-Empfehlung, bei Bedarf mit Stosslüftungshinweis. */
+/** Baut eine «schliessen»-Empfehlung mit den zutreffenden Hinweisen. */
 function geschlossen(
   begruendung: string,
   dringlichkeit: Dringlichkeit,
-  stosslueften: boolean,
+  hinweise: readonly Hinweis[],
 ): Empfehlung {
   return {
     status: 'schliessen',
     dringlichkeit,
     titel: 'Fenster schliessen',
     begruendung,
-    ...(stosslueften ? { zusatzhinweis: STOSSLUEFTUNG_HINWEIS } : {}),
+    zusatzhinweise: ordneHinweise(hinweise),
   };
 }
 
-const STOSSLUEFTUNG_HINWEIS =
-  'Der Raum ist belegt: trotzdem stündlich rund fünf Minuten stosslüften. ' +
-  'Das hält die Luft frisch und bringt in der kurzen Zeit kaum Wärme herein.';
+/**
+ * Rangfolge der Hinweisarten: Was die Gesundheit betrifft, steht vorn, danach
+ * folgt die Bauphysik, zuletzt das Komfortliche.
+ *
+ * Die Reihenfolge ist eine fachliche Festlegung und gehört deshalb hierhin und
+ * nicht in die Oberfläche – die entscheidet nur noch, wie viele Hinweise sie
+ * davon zeigt.
+ */
+const HINWEIS_RANGFOLGE: readonly Hinweisart[] = ['luftqualitaet', 'feuchte', 'kuehlung', 'wind'];
+
+function ordneHinweise(hinweise: readonly Hinweis[]): Hinweis[] {
+  return [...hinweise].sort(
+    (a, b) => HINWEIS_RANGFOLGE.indexOf(a.art) - HINWEIS_RANGFOLGE.indexOf(b.art),
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Hinweise bei geschlossenen Fenstern
+ * ------------------------------------------------------------------ */
+
+/**
+ * Ab dieser Raumtemperatur nützt ein Ventilator nichts mehr – allerdings nur
+ * bei trockener Luft (siehe `VENTILATOR_TROCKEN_PROZENT`).
+ *
+ * Oberhalb der Hauttemperatur von rund 34 °C führt bewegte Luft dem Körper
+ * Wärme zu, statt sie abzuführen. Ob das den Gewinn durch die verstärkte
+ * Schweissverdunstung überwiegt, hängt an der Feuchte: Bei trockener Hitze ist
+ * die Verdunstung ohnehin ausgeschöpft und der Ventilator kippt ins Negative,
+ * bei feuchter Hitze bleibt er bis deutlich höheren Temperaturen nützlich.
+ */
+const VENTILATOR_GRENZE_C = celsius(35);
+
+/** Unterhalb dieser relativen Raumfeuchte gilt die Hitze als trocken. */
+const VENTILATOR_TROCKEN_PROZENT = 40;
+
+function hinweiseBeiGeschlossenenFenstern(eingabe: BewertungsEingabe): Hinweis[] {
+  const hinweise: Hinweis[] = [];
+  if (eingabe.raumBelegt !== true) return hinweise;
+
+  // In dicht belegten Räumen verlangt die Luftqualität trotz Hitze kurzes
+  // Stosslüften.
+  if (eingabe.stosslueftungNoetig === true) hinweise.push(STOSSLUEFTUNG);
+
+  // Wenn die Fenster zu bleiben müssen, ist Luftbewegung im Raum das einzige
+  // verbleibende Mittel – und ein wirksames.
+  if (eingabe.raumtemperaturC > eingabe.einstellungen.zielTemperaturC) {
+    hinweise.push(kuehlungshinweis(eingabe));
+  }
+
+  return hinweise;
+}
+
+/**
+ * Ventilator oder Trinken? Die Raumfeuchte wird aus dem Aussentaupunkt
+ * geschätzt: Die absolute Feuchte bleibt beim Erwärmen erhalten, die
+ * Raumtemperatur ist bekannt. Ohne Taupunktangabe bleibt es beim Regelfall.
+ */
+function kuehlungshinweis(eingabe: BewertungsEingabe): Hinweis {
+  const taupunktC = eingabe.taupunktAussenC;
+  if (taupunktC === undefined || eingabe.raumtemperaturC < VENTILATOR_GRENZE_C) {
+    return VENTILATOR;
+  }
+
+  const raumfeuchteProzent = relativeFeuchteProzent(eingabe.raumtemperaturC, taupunktC);
+  return raumfeuchteProzent < VENTILATOR_TROCKEN_PROZENT ? TROCKENE_HITZE : VENTILATOR;
+}
+
+const STOSSLUEFTUNG: Hinweis = {
+  art: 'luftqualitaet',
+  kuerzel: 'stosslüften',
+  text:
+    'Der Raum ist belegt: trotzdem stündlich rund fünf Minuten stosslüften. ' +
+    'Das hält die Luft frisch und bringt in der kurzen Zeit kaum Wärme herein.',
+};
+
+const VENTILATOR: Hinweis = {
+  art: 'kuehlung',
+  kuerzel: 'Ventilator',
+  text:
+    'Luftbewegung hilft auch bei geschlossenen Fenstern: Ein Ventilator senkt das ' +
+    'Temperaturempfinden um rund zwei bis drei Grad, ohne Wärme hereinzulassen.',
+};
+
+const TROCKENE_HITZE: Hinweis = {
+  art: 'kuehlung',
+  kuerzel: 'trinken',
+  text:
+    'Bei dieser trockenen Hitze kühlt ein Ventilator kaum noch – die bewegte Luft ' +
+    'wärmt eher, als sie kühlt. Wichtiger sind jetzt regelmässiges Trinken und ' +
+    'kühle Umschläge.',
+};
+
+/* ------------------------------------------------------------------ *
+ * Hinweise bei offenen Fenstern
+ * ------------------------------------------------------------------ */
+
+/**
+ * Ab dieser Windgeschwindigkeit lohnt der Hinweis aufs Querlüften. Gemessen
+ * wird in 10 m Höhe; am Fenster kommt im bebauten Gebiet deutlich weniger an.
+ */
+const QUERLUEFTEN_AB_M_PRO_S = 4;
+
+function hinweiseBeiOffenenFenstern(eingabe: BewertungsEingabe): Hinweis[] {
+  const hinweise: Hinweis[] = [];
+  const taupunktC = eingabe.taupunktAussenC;
+
+  if (taupunktC !== undefined) {
+    // Tauwasser ist das ernstere Problem und schliesst den Schwülehinweis aus –
+    // beide zugleich wären dieselbe Aussage in zwei Sätzen.
+    if (drohtKondensation(taupunktC, eingabe.raumtemperaturC)) hinweise.push(KONDENSATION);
+    else if (istSchwuel(taupunktC)) hinweise.push(SCHWUELE);
+  }
+
+  if ((eingabe.windgeschwindigkeitMProS ?? 0) >= QUERLUEFTEN_AB_M_PRO_S) {
+    hinweise.push(QUERLUEFTEN);
+  }
+
+  return hinweise;
+}
+
+const KONDENSATION: Hinweis = {
+  art: 'feuchte',
+  kuerzel: 'kurz lüften',
+  text:
+    'Die Aussenluft ist feuchter, als der ausgekühlte Raum verträgt: An kühlen Wänden ' +
+    'und Böden kann sich Wasser niederschlagen. Deshalb kurz und kräftig lüften, ' +
+    'statt die Fenster dauerhaft offen zu lassen.',
+};
+
+const SCHWUELE: Hinweis = {
+  art: 'feuchte',
+  kuerzel: 'schwül',
+  text:
+    'Die Aussenluft ist schwül. Lüften senkt die Temperatur wie berechnet, die Luft ' +
+    'fühlt sich danach aber weiterhin schwer an.',
+};
+
+const QUERLUEFTEN: Hinweis = {
+  art: 'wind',
+  kuerzel: 'querlüften',
+  text:
+    'Es weht spürbarer Wind – jetzt quer lüften: Zwei gegenüberliegende Fenster ' +
+    'tauschen die Luft um ein Vielfaches schneller als ein einzelnes.',
+};
 
 function dringlichkeitOeffnen(
   raumtemperaturC: Celsius,
