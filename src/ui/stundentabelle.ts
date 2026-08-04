@@ -1,5 +1,9 @@
 import type { SimulationsStunde } from '../typen.ts';
-import { formatiereTemperatur, formatiereUhrzeit } from '../logik/format.ts';
+import {
+  formatiereTagesueberschrift,
+  formatiereTemperatur,
+  formatiereUhrzeit,
+} from '../logik/format.ts';
 import { el, leere } from './dom.ts';
 import { symbolFuerHinweis, symbolFuerStatus } from './symbole.ts';
 
@@ -8,6 +12,12 @@ import { symbolFuerHinweis, symbolFuerStatus } from './symbole.ts';
  *
  * Sie ist zugleich die textliche Entsprechung des Diagramms: Wer das Diagramm
  * nicht sehen oder Farben nicht unterscheiden kann, findet hier alle Werte.
+ *
+ * Zwei Gliederungen laufen mit: eine Zwischenzeile bei jedem Tageswechsel
+ * (sonst folgt auf «23:00» ein «00:00» ohne Hinweis, dass ein neuer Tag – und
+ * womöglich ein anderer Wochentag mit anderer Belegung – begonnen hat) und eine
+ * kräftigere Linie dort, wo die Empfehlung umschlägt. Genau diese Zeilen sucht,
+ * wer die Tabelle überfliegt.
  */
 
 const ANZAHL_STUNDEN = 24;
@@ -20,21 +30,38 @@ export function rendereStundentabelle(
   leere(behaelter);
 
   const ausschnitt = stunden.slice(jetztIndex, jetztIndex + ANZAHL_STUNDEN);
-  if (ausschnitt.length === 0) {
+  const jetzt = ausschnitt[0];
+  if (!jetzt) {
     behaelter.append(el('p', { class: 'platzhalter' }, ['Keine Daten verfügbar.']));
     return;
   }
 
-  const zeilen = ausschnitt.map((stunde, index) =>
-    el('tr', { 'data-jetzt': index === 0 ? 'true' : 'false' }, [
-      el('th', { scope: 'row' }, [
-        index === 0 ? `${formatiereUhrzeit(stunde.zeit)} (jetzt)` : formatiereUhrzeit(stunde.zeit),
+  const zeilen: HTMLElement[] = [];
+  for (const [index, stunde] of ausschnitt.entries()) {
+    const vorige = ausschnitt[index - 1];
+
+    if (vorige && stunde.zeit.getDate() !== vorige.zeit.getDate()) {
+      zeilen.push(
+        el('tr', { class: 'tagtrenner' }, [
+          el('th', { scope: 'colgroup', colspan: 4 }, [
+            formatiereTagesueberschrift(stunde.zeit, jetzt.zeit),
+          ]),
+        ]),
+      );
+    }
+
+    const wechsel = vorige !== undefined && vorige.empfehlung.status !== stunde.empfehlung.status;
+    zeilen.push(
+      el('tr', { 'data-jetzt': index === 0 ? 'true' : 'false', 'data-wechsel': wechsel }, [
+        el('th', { scope: 'row' }, [
+          index === 0 ? `${formatiereUhrzeit(stunde.zeit)} (jetzt)` : formatiereUhrzeit(stunde.zeit),
+        ]),
+        el('td', { class: 'zahl' }, [formatiereTemperatur(stunde.aussentemperaturC)]),
+        el('td', { class: 'zahl' }, [formatiereTemperatur(stunde.raumtemperaturC)]),
+        el('td', {}, [statusMarke(stunde)]),
       ]),
-      el('td', { class: 'zahl' }, [formatiereTemperatur(stunde.aussentemperaturC)]),
-      el('td', { class: 'zahl' }, [formatiereTemperatur(stunde.raumtemperaturC)]),
-      el('td', {}, [statusMarke(stunde)]),
-    ]),
-  );
+    );
+  }
 
   behaelter.append(
     el('table', {}, [

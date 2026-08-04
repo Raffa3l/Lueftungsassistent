@@ -36,6 +36,14 @@
   --radius: 12px;
   --schatten: 0 1px 2px rgba(11, 11, 11, 0.06), 0 4px 12px rgba(11, 11, 11, 0.04);
   --schrift-familie: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Gemeinsame Höhe aller Eingabefelder, aus ihren Bestandteilen abgeleitet:
+     eine Textzeile, oben und unten je 0.6 rem Innenabstand, dazu der Rahmen.
+     Nötig, weil die Felder ihre Höhe sonst unterschiedlich ermitteln – ein
+     Datumsfeld rechnet mit seinem inneren Aufbau statt mit der Zeilenhöhe und
+     bliebe einen Pixel niedriger als das Textfeld daneben. Der Wert liegt über
+     den 44 px, die eine Trefferfläche mindestens braucht. */
+  --feldhoehe: calc(1.5em + 1.2rem + 2px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -76,10 +84,6 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
-  /* Die Erklärblasen sind absolut positioniert und zählen auch unsichtbar zur
-     Scrollbreite. Ohne dies bekäme die Seite einen waagrechten Scrollbalken,
-     sobald eine Blase über den Rand hinausragt. */
-  overflow-x: clip;
 }
 
 h1,
@@ -134,6 +138,19 @@ a {
   max-width: 60rem;
   margin: 0 auto;
   padding: 1rem 1rem 3rem;
+  /* Die Erklärblasen sind absolut positioniert und zählen auch unsichtbar zur
+     Scrollbreite. Ohne diese Grenze liesse sich die Seite seitwärts schieben,
+     sobald eine Blase über den Rand hinausragt.
+
+     Warum hier und nicht auf `html` oder `body`: Von beiden reicht der Browser
+     den Wert an den Viewport weiter, und dort bleibt `clip` wirkungslos. Erst
+     ein gewöhnliches Element im Dokument klippt tatsächlich.
+
+     Sichtbare Blasen werden nicht beschnitten – `ui/infofeld.ts` rückt jede
+     geöffnete Blase in genau diesen Bereich hinein. `clip` statt `hidden`, damit
+     kein Scroll-Container entsteht: Die Kopfzeile der Tabelle bleibt so am
+     oberen Bildrand haften. */
+  overflow-x: clip;
 }
 
 .kopf {
@@ -148,6 +165,11 @@ a {
 
 main {
   display: grid;
+  /* `minmax(0, 1fr)` statt `1fr`: Rasterzellen haben von sich aus eine
+     Mindestbreite in Höhe ihres breitesten Inhalts. Eine einzige nicht
+     umbrechbare Tabellenzeile weitete sonst alle Karten über den Bildschirm
+     hinaus – auf dem Mobilgerät liess sich die Seite dann seitwärts schieben. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -159,10 +181,81 @@ main {
   padding: 1.25rem;
 }
 
+/* Kartentitel links, Bedienelement der Karte rechts daneben. */
+.karte__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
 .hinweis {
   margin: 0.35rem 0 1rem;
   color: var(--schrift-sekundaer);
   font-size: 0.875rem;
+}
+
+/* ---------- Aufklappbare Karte ---------- *
+ *
+ * Die Einstellungen sind eine Einmal-Konfiguration und stehen deshalb
+ * eingeklappt. Der Kopf trägt die Zusammenfassungszeile: Wofür gerechnet wird,
+ * ist so ablesbar, ohne aufzuklappen.
+ */
+
+.klappe__kopf {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  /* Eigener Pfeil statt des Standardmarkers – der lässt sich nicht gestalten. */
+  list-style: none;
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+.klappe__kopf::-webkit-details-marker {
+  display: none;
+}
+
+.klappe__kopf:focus-visible {
+  outline: 2px solid var(--serie-innen);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.klappe__text {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.klappe__zusammenfassung {
+  color: var(--schrift-sekundaer);
+  font-size: 0.875rem;
+  /* Lange Ketten dürfen umbrechen, statt die Karte breitzudrücken. */
+  overflow-wrap: anywhere;
+}
+
+.klappe__pfeil {
+  flex: none;
+  margin-inline-start: auto;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-right: 2px solid var(--schrift-sekundaer);
+  border-bottom: 2px solid var(--schrift-sekundaer);
+  transform: rotate(45deg);
+  transform-origin: 60% 60%;
+  transition: transform 150ms ease;
+}
+
+.klappe[open] .klappe__pfeil {
+  transform: rotate(-135deg);
+}
+
+.klappe__inhalt {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rand);
 }
 
 .platzhalter {
@@ -319,22 +412,53 @@ main {
 
 #einstellungen-formular {
   display: grid;
-  gap: 1.1rem;
+  gap: 1.5rem;
 }
 
+/* Das Fieldset bleibt ein Block: `legend` ist in einem Grid-Container kein
+   Grid-Item, der Zeilenabstand griffe dort nicht und die Beschriftung klebte
+   auf dem ersten Feld. Das Raster steckt deshalb in `.feldgruppe__inhalt`. */
 .feldgruppe {
-  display: grid;
-  gap: 1.1rem;
-  /* Felder oben ausrichten, damit ein kurzes Feld neben einem langen
-     nicht auf dessen Höhe gedehnt wird. */
-  align-items: start;
   border: 0;
   padding: 0;
   margin: 0;
 }
 
+.feldgruppe__inhalt {
+  display: grid;
+  gap: 1.1rem;
+  /* Felder oben ausrichten, damit ein kurzes Feld neben einem langen
+     nicht auf dessen Höhe gedehnt wird. */
+  align-items: start;
+}
+
+/* Der Gruppentitel gehört auf eine andere Ebene als die Feldbeschriftungen –
+   sonst liest sich «Standort und Raum» wie eine zweite Beschriftung des Feldes
+   darunter. Statt grösser wird er kleiner und gesperrt: Das unterscheidet ihn
+   auf den ersten Blick, ohne mit den Beschriftungen um Aufmerksamkeit zu
+   ringen. Eine Linie darüber schied aus – `legend` sitzt auf dem Rahmen des
+   Fieldsets und durchschneidet ihn. */
+.feldgruppe > legend {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--schrift-sekundaer);
+}
+
+legend + .feldgruppe__inhalt {
+  margin-top: 0.9rem;
+}
+
+/* Zwei sachlich zusammengehörige Felder nebeneinander. */
+.feldpaar {
+  display: grid;
+  gap: 1.1rem;
+  align-items: start;
+}
+
 @media (min-width: 40rem) {
-  .feldgruppe--zwei {
+  .feldpaar {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -456,18 +580,23 @@ legend {
   }
 }
 
-/* Vorschlag aus dem adaptiven Komfortmodell – ein Angebot, keine Ansage. */
+/* Vorschlag aus dem adaptiven Komfortmodell – ein Angebot, keine Ansage.
+   Er steht neben der Eingabe, die er ändern würde, nicht als Kasten darunter. */
 .feld__vorschlag {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem 0 0;
-  padding: 0.6rem 0.75rem;
-  border-radius: 10px;
-  border: 1px solid var(--rand);
-  background: var(--flaeche-seite);
-  font-size: 0.8125rem;
+}
+
+/* Auf einer Zeile mit der Eingabe stehend, teilt der Knopf deren Höhe – sonst
+   sitzt er sichtbar zu tief im Raster. Gestreckt statt auf ein festes Mass
+   gesetzt, damit es auch bei anderer Schriftgrösse zusammenpasst. */
+.eingabezeile .feld__vorschlag {
+  align-self: stretch;
+}
+
+.eingabezeile .feld__vorschlag button {
+  min-height: 2.75rem;
+  height: 100%;
 }
 
 .feld__vorschlag[hidden] {
@@ -477,13 +606,38 @@ legend {
 select,
 input[type='number'] {
   font: inherit;
+  line-height: 1.5;
   color: inherit;
   background: var(--flaeche-seite);
   border: 1px solid var(--linie-achse);
   border-radius: 8px;
   padding: 0.6rem 0.7rem;
   width: 100%;
-  min-height: 2.75rem; /* bequeme Trefferfläche auf dem Mobilgerät */
+  min-height: var(--feldhoehe);
+}
+
+/*
+ * Eigenes Auswahlzeichen statt des Browser-Pfeils.
+ *
+ * Der native Pfeil klebt am rechten Feldrand – zwischen ihm und dem Rahmen
+ * bleiben je nach Browser nur wenige Pixel, während links 0.7 rem Luft stehen.
+ * Das eigene Zeichen sitzt mit demselben Abstand wie der Text auf der anderen
+ * Seite und sieht in allen Browsern gleich aus.
+ */
+select {
+  appearance: none;
+  /* Platz für das Zeichen, damit langer Text nicht darunter läuft. */
+  padding-right: 2.4rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.75 6 6.25 11 1.75' fill='none' stroke='%2352514e' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 0.7rem auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.75 6 6.25 11 1.75' fill='none' stroke='%23c3c2b7' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
 }
 
 select:focus-visible,
@@ -493,6 +647,55 @@ a:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--serie-innen);
   outline-offset: 2px;
+}
+
+/* ---------- Zahleneingabe mit Schrittknöpfen ---------- *
+ *
+ * Ein zweistelliger Wert in einem Feld über die halbe Kartenbreite lädt zu
+ * Fehleingaben ein und sieht nach mehr Eingabe aus, als er ist. Das Feld ist
+ * deshalb schmal; daneben stehen «−» und «+» mit voller Trefferfläche.
+ */
+/* Eingabe und was sonst auf ihre Höhe gehört – etwa der Komfortvorschlag.
+   Bricht auf schmalen Bildschirmen um, statt die Karte zu weiten. */
+.eingabezeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+  max-width: 13rem;
+}
+
+.stepper input[type='number'] {
+  flex: 1 1 4rem;
+  min-width: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Die eigenen Pfeilchen der Zahleneingabe sind zu klein für einen Finger und
+   verdoppeln die Schrittknöpfe – sie werden ausgeblendet. */
+.stepper input[type='number'] {
+  appearance: textfield;
+}
+
+.stepper input[type='number']::-webkit-outer-spin-button,
+.stepper input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.stepper__knopf {
+  flex: none;
+  width: 2.75rem;
+  padding: 0;
+  font-size: 1.125rem;
+  line-height: 1;
 }
 
 .schalter {
@@ -509,10 +712,46 @@ summary:focus-visible {
   accent-color: var(--serie-innen);
 }
 
+/* Einzelner Schalter neben einem Kartentitel. */
+.schalter--klein {
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  color: var(--schrift-sekundaer);
+}
+
+.schalter--klein input[type='checkbox'] {
+  margin: 0;
+}
+
+.schalter--klein label {
+  cursor: pointer;
+}
+
 .knopfreihe {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+}
+
+/* Verwerfende Aktion am Fuss des Formulars: abgesetzt und rechts, damit sie
+   nicht mit den hinzufügenden Knöpfen darüber verwechselt wird. */
+.knopfreihe--abschluss {
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rand);
+}
+
+.knopf--zurueckhaltend {
+  background: none;
+  border-color: var(--rand);
+  color: var(--schrift-sekundaer);
+  font-size: 0.875rem;
+}
+
+.knopf--zurueckhaltend:hover {
+  border-color: var(--linie-achse);
+  color: var(--schrift-primaer);
 }
 
 button {
@@ -540,10 +779,14 @@ button:hover {
   gap: 0.6rem;
 }
 
+/* Gestreckt statt zentriert: In dieser Zeile stehen Textfeld, zwei
+   Datumsfelder und ein Knopf nebeneinander, die ihre Höhe je anders ermitteln –
+   das Datumsfeld rechnet seinen inneren Aufbau mit ein, der kleine Knopf hat
+   ein eigenes Mindestmass. Gestreckt teilen sie die Zeilenhöhe. */
 .ferienzeile {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 0.5rem;
 }
 
@@ -554,11 +797,19 @@ button:hover {
 
 .ferienzeile__zeitraum {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.4rem;
   flex: 1 1 18rem;
-  font-size: 0.875rem;
   color: var(--schrift-sekundaer);
+}
+
+/* Nur das Wörtchen «bis» steht kleiner – und mittig, während die Felder
+   daneben die volle Zeilenhöhe einnehmen. Auf dem Container gesetzt, erbten
+   die Datumsfelder die kleinere Schrift über `font: inherit`; sie standen dann
+   niedriger und kleiner beschriftet neben dem Textfeld derselben Zeile. */
+.ferienzeile__zeitraum > span {
+  align-self: center;
+  font-size: 0.875rem;
 }
 
 .ferienzeile input[type='date'] {
@@ -569,12 +820,13 @@ button:hover {
 input[type='text'],
 input[type='date'] {
   font: inherit;
+  line-height: 1.5;
   color: inherit;
   background: var(--flaeche-seite);
   border: 1px solid var(--linie-achse);
   border-radius: 8px;
   padding: 0.6rem 0.7rem;
-  min-height: 2.75rem;
+  min-height: var(--feldhoehe);
 }
 
 .knopf--klein {
@@ -588,15 +840,36 @@ button[disabled] {
   cursor: not-allowed;
 }
 
+/* Kennwerte: kurze Werte als abgesetzte Etiketten, erklärende Sätze als eigene
+   Zeile. Als blosse Flex-Liste lasen sich beide als ein Absatz mit zufälligen
+   Wortabständen. */
 .kennwerte {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1rem;
+  gap: 0.35rem;
   margin: 0;
-  padding: 0.6rem 0 0;
+  padding: 0.5rem 0 0;
   font-size: 0.8125rem;
   color: var(--schrift-sekundaer);
   list-style: none;
+}
+
+.kennwert {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--rand);
+  border-radius: 999px;
+  background: var(--flaeche-seite);
+  white-space: nowrap;
+}
+
+.kennwert--satz {
+  flex-basis: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  white-space: normal;
 }
 
 /* ---------- Diagramm ---------- */
@@ -679,8 +952,35 @@ button[disabled] {
   -webkit-overflow-scrolling: touch;
 }
 
+/*
+ * Ab dieser Breite passt die Tabelle ohne waagrechtes Scrollen – sie braucht im
+ * ungünstigsten Fall (längstes Hinweiskürzel in jeder Zeile) rund 29 rem, dazu
+ * kommen Karten- und Seitenrand.
+ *
+ * Warum das für die Kopfzeile zählt: `overflow-x: auto` macht die Hülle zum
+ * Scrollcontainer – auch dann, wenn es waagrecht nichts zu scrollen gibt. Das
+ * `position: sticky` der Kopfzeile bezieht sich damit auf die Hülle, und die
+ * scrollt senkrecht nie. Erst ohne den Container gilt wieder der Viewport, und
+ * die Kopfzeile bleibt beim Blättern stehen.
+ *
+ * Auf schmaleren Bildschirmen bleibt es beim Scrollen ohne bleibende Kopfzeile:
+ * Ein eigener senkrechter Scrollbereich für die Tabelle brächte sie zurück,
+ * verschachteltes Scrollen wiegt auf dem Mobilgerät aber schwerer als die
+ * verlorene Kopfzeile – die vier Spalten sind auch ohne sie zu lesen.
+ */
+@media (min-width: 36rem) {
+  .tabelle-huelle {
+    overflow-x: visible;
+  }
+}
+
 table {
-  border-collapse: collapse;
+  /* `separate` statt `collapse`: Bei zusammengefassten Rändern gehören diese
+     der Tabelle, nicht der Zelle – eine klebende Kopfzeile nähme weder Rand
+     noch Schatten mit und die Zeilen liefen ohne Trennung unter ihr durch.
+     Mit `border-spacing: 0` sieht das Ergebnis gleich aus. */
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   font-size: 0.875rem;
 }
@@ -706,7 +1006,15 @@ thead th {
   font-weight: 600;
   position: sticky;
   top: 0;
+  z-index: 1;
   background: var(--flaeche-karte);
+  /* Bei `border-collapse: collapse` gehört der Rand der Tabelle, nicht der
+     Zelle – beim Kleben bliebe er zurück und die Zeilen liefen ohne Trennung
+     unter der Kopfzeile durch. Der Schatten übernimmt die Linie und setzt die
+     Kopfzeile zugleich leicht ab. */
+  box-shadow:
+    0 1px 0 var(--linie-achse),
+    0 6px 8px -6px rgb(0 0 0 / 25%);
 }
 
 td.zahl {
@@ -720,6 +1028,27 @@ tr[data-jetzt='true'] {
 
 tr[data-jetzt='true'] th {
   font-weight: 700;
+}
+
+/* Tageswechsel – sonst folgt auf «23:00» ein «00:00» ohne jeden Hinweis. */
+.tagtrenner th {
+  padding-top: 1.1rem;
+  color: var(--schrift-sekundaer);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--linie-achse);
+  white-space: normal;
+}
+
+/* Dort, wo die Empfehlung umschlägt: die gesuchte Zeile. */
+tr[data-wechsel] > * {
+  border-top: 2px solid var(--linie-achse);
+}
+
+/* Ohne zusammengefasste Ränder stünde der Zeilenrand darüber noch daneben –
+   zusammen ergäbe das eine dreifache Linie. */
+tr:has(+ tr[data-wechsel]) > * {
+  border-bottom-color: transparent;
 }
 
 .status-marke {

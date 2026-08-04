@@ -26,6 +26,8 @@ export type SonnenschutzId = 'keiner' | 'innen' | 'aussen';
 export interface Sonnenschutz {
   id: SonnenschutzId;
   name: string;
+  /** Kurzform für die Zusammenfassungszeile über den Einstellungen. */
+  kurzname: string;
   /** Anteil des Eintrags, der trotz Behang hereinkommt. */
   faktor: number;
   beschreibung: string;
@@ -35,12 +37,14 @@ export const SONNENSCHUTZ_ARTEN: readonly Sonnenschutz[] = [
   {
     id: 'keiner',
     name: 'Kein Sonnenschutz',
+    kurzname: 'ohne Sonnenschutz',
     faktor: 1,
     beschreibung: 'Blankes Fenster. Die Sonne heizt ungebremst ein.',
   },
   {
     id: 'innen',
     name: 'Innen (Vorhang, Rollo)',
+    kurzname: 'Sonnenschutz innen',
     faktor: 0.7,
     beschreibung:
       'Hilft gegen Blendung, kaum gegen Wärme: Die Strahlung ist bereits durch die Scheibe.',
@@ -48,6 +52,7 @@ export const SONNENSCHUTZ_ARTEN: readonly Sonnenschutz[] = [
   {
     id: 'aussen',
     name: 'Aussen (Storen, Rollladen, Markise)',
+    kurzname: 'Sonnenschutz aussen',
     faktor: 0.25,
     beschreibung:
       'Die Wärme bleibt draussen – viermal wirksamer als ein Vorhang und der stärkste Hebel überhaupt.',

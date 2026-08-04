@@ -54,6 +54,11 @@ export function infofeld(thema: string, text: string): HTMLElement {
    * damit hinaus. Eine feste Ausrichtung per Media Query löst das nicht: Was
    * rechts hilft, schadet links. Deshalb wird beim Öffnen gemessen und nur so
    * weit verschoben, wie nötig.
+   *
+   * Massgeblich ist der Seitencontainer, nicht der Viewport: `.seite` klippt
+   * waagrechten Überlauf (siehe `style.css`), damit sich die Seite durch eine
+   * unsichtbare Blase nicht seitwärts schieben lässt. Wer sich am Viewport
+   * ausrichtete, geriete auf breiten Bildschirmen in genau dieses Klippen.
    */
   const positioniere = (): void => {
     blase.style.transform = 'translateX(-50%)';
@@ -62,13 +67,13 @@ export function infofeld(thema: string, text: string): HTMLElement {
     // clientWidth statt innerWidth: Letzteres zählt die Bildlaufleiste mit,
     // wodurch die Blase genau um deren Breite zu weit rechts landen würde.
     const sichtbareBreite = document.documentElement.clientWidth;
+    const bereich = wurzel.closest('.seite')?.getBoundingClientRect();
+    const links = Math.max(rand, (bereich?.left ?? 0) + rand);
+    const rechts = Math.min(sichtbareBreite - rand, (bereich?.right ?? sichtbareBreite) - rand);
+
     const feld = blase.getBoundingClientRect();
     const versatz =
-      feld.left < rand
-        ? rand - feld.left
-        : feld.right > sichtbareBreite - rand
-          ? sichtbareBreite - rand - feld.right
-          : 0;
+      feld.left < links ? links - feld.left : feld.right > rechts ? rechts - feld.right : 0;
 
     if (versatz !== 0) {
       blase.style.transform = `translateX(calc(-50% + ${Math.round(versatz)}px))`;

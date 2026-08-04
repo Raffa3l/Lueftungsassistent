@@ -13,7 +13,7 @@ import { findeIndexFuerJetzt, simuliere } from './logik/thermischesModell.ts';
 import { vorgeschlageneZieltemperaturC } from './logik/komfort.ts';
 import { baueEinstellungsformular, type EinstellungenSteuerung } from './ui/einstellungen.ts';
 import { rendereDashboard } from './ui/dashboard.ts';
-import { baueLegende, Temperaturdiagramm } from './ui/diagramm.ts';
+import { baueLegende, baueVergleichsschalter, Temperaturdiagramm } from './ui/diagramm.ts';
 import { rendereStundentabelle } from './ui/stundentabelle.ts';
 import { el, leere } from './ui/dom.ts';
 
@@ -43,8 +43,10 @@ const zustand: Anwendungszustand = {
 // Feste Bausteine der Seite einsammeln.
 const empfehlungInhalt = pflichtElement('empfehlung-inhalt');
 const formular = pflichtElement('einstellungen-formular') as HTMLFormElement;
+const einstellungenZusammenfassung = pflichtElement('einstellungen-zusammenfassung');
 const diagrammBehaelter = pflichtElement('diagramm');
 const legendeBehaelter = pflichtElement('diagramm-legende');
+const diagrammSchalter = pflichtElement('diagramm-schalter');
 const tabellenBehaelter = pflichtElement('stundentabelle');
 const hauptbereich = document.querySelector('main');
 
@@ -53,6 +55,7 @@ let laufenderAbruf: AbortController | undefined;
 
 const einstellungenSteuerung: EinstellungenSteuerung = baueEinstellungsformular(
   formular,
+  einstellungenZusammenfassung,
   zustand.einstellungen,
   {
     beiAenderung(aenderung) {
@@ -77,7 +80,8 @@ const einstellungenSteuerung: EinstellungenSteuerung = baueEinstellungsformular(
   },
 );
 
-baueLegende(legendeBehaelter, zustand.zeigeVergleich, (aktiv) => {
+baueLegende(legendeBehaelter);
+baueVergleichsschalter(diagrammSchalter, zustand.zeigeVergleich, (aktiv) => {
   zustand.zeigeVergleich = aktiv;
   zeichne();
 });

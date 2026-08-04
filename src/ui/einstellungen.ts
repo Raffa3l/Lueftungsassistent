@@ -5,7 +5,7 @@ import { datumsSchluessel } from '../konfiguration/feiertage.ts';
 import { erzeugeId } from '../dienste/speicher.ts';
 import { GEBAEUDETYPEN, findeGebaeudetyp } from '../konfiguration/gebaeudetypen.ts';
 import { RAUMTYPEN, findeRaumtyp } from '../konfiguration/raumtypen.ts';
-import { STATIONEN } from '../konfiguration/stationen.ts';
+import { STATIONEN, findeStation } from '../konfiguration/stationen.ts';
 import { AUSRICHTUNGEN, findeAusrichtung } from '../konfiguration/ausrichtungen.ts';
 import { SONNENSCHUTZ_ARTEN, findeSonnenschutz } from '../konfiguration/sonnenschutz.ts';
 import { GRENZWERTE, MAX_FERIENZEITRAEUME } from '../konfiguration/standardwerte.ts';
@@ -20,6 +20,13 @@ import { INFO } from './infotexte.ts';
  * Das Formular wird einmal aufgebaut; danach werden nur noch Werte und die
  * abgeleitete Gebäudebeschreibung aktualisiert. So geht der Fokus beim Tippen
  * nicht verloren.
+ *
+ * Die Felder stehen in ausdrücklichen Zweiergruppen (`.feldpaar`) statt in
+ * einem durchlaufenden Zweispaltenraster: Ein Raster füllt zeilenweise auf und
+ * stellt dabei Felder nebeneinander, die sachlich nichts miteinander zu tun
+ * haben. Ausrichtung und Sonnenschutz gehören zusammen, Raum- und Gebäudetyp
+ * ebenso – und weil beide Paare ähnlich hohe Kennwertlisten tragen, entstehen
+ * auch keine Lücken mehr.
  */
 
 export interface EinstellungenSteuerung {
@@ -39,6 +46,7 @@ export interface EinstellungenRueckrufe {
 
 export function baueEinstellungsformular(
   formular: HTMLFormElement,
+  zusammenfassung: HTMLElement,
   start: Einstellungen,
   rueckrufe: EinstellungenRueckrufe,
 ): EinstellungenSteuerung {
@@ -103,15 +111,17 @@ export function baueEinstellungsformular(
     beiWert: (wert) => rueckrufe.beiAenderung({ zielTemperaturC: celsius(wert) }),
   });
 
-  // Vorschlag nach dem adaptiven Komfortmodell – er sitzt direkt unter dem
-  // Feld, das er betrifft, und bleibt bis zum Klick folgenlos.
-  const vorschlagText = el('span', {});
-  const vorschlagKnopf = el('button', { type: 'button', class: 'knopf--klein' }, ['Übernehmen']);
-  const vorschlagBereich = el('p', { class: 'feld__vorschlag', hidden: true }, [
-    vorschlagText,
+  // Vorschlag nach dem adaptiven Komfortmodell: ein Knopf neben der Eingabe,
+  // die er ändern würde. Als Kasten darunter beanspruchte er vier Zeilen für
+  // eine einzige Zahl und schob beim Erscheinen das halbe Formular nach unten.
+  // Die Begründung steht im Infofeld daneben – ausgeschrieben wiederholte sie
+  // nur, was das Infofeld beim Feldnamen ohnehin sagt.
+  const vorschlagKnopf = el('button', { type: 'button', class: 'knopf--klein' });
+  const vorschlagBereich = el('span', { class: 'feld__vorschlag', hidden: true }, [
     vorschlagKnopf,
+    infofeld(INFO.komfortvorschlag.thema, INFO.komfortvorschlag.text),
   ]);
-  zielTemperatur.wurzel.append(vorschlagBereich);
+  zielTemperatur.eingabezeile.append(vorschlagBereich);
 
   let vorschlagC: Celsius | undefined;
   vorschlagKnopf.addEventListener('click', () => {
@@ -147,77 +157,102 @@ export function baueEinstellungsformular(
   ]);
   const ferienBereich = el('fieldset', { class: 'feldgruppe' }, [
     el('legend', { class: 'feld__titel' }, ['Ferien und freie Tage']),
-    el('p', { class: 'feld__beschreibung' }, [
-      'An diesen Tagen steht der Raum leer und heizt sich weniger auf. Schulferien sind kantonal geregelt und werden hier selbst eingetragen.',
-    ]),
-    el('div', { class: 'schalter' }, [
-      feiertagSchalter,
-      el('label', { for: 'feld-feiertage' }, [
-        'Nationale Feiertage berücksichtigen (Neujahr, Ostern, Auffahrt, Pfingsten, 1. August, Weihnachten)',
+    el('div', { class: 'feldgruppe__inhalt' }, [
+      el('p', { class: 'feld__beschreibung' }, [
+        'An diesen Tagen steht der Raum leer und heizt sich weniger auf. Schulferien sind kantonal geregelt und werden hier selbst eingetragen.',
       ]),
+      el('div', { class: 'schalter' }, [
+        feiertagSchalter,
+        el('label', { for: 'feld-feiertage' }, [
+          'Nationale Feiertage berücksichtigen (Neujahr, Ostern, Auffahrt, Pfingsten, 1. August, Weihnachten)',
+        ]),
+      ]),
+      ferienListe,
+      el('div', { class: 'knopfreihe' }, [ferienHinzufuegen]),
     ]),
-    ferienListe,
-    el('div', { class: 'knopfreihe' }, [ferienHinzufuegen]),
   ]);
 
-  const zuruecksetzen = el('button', { type: 'button' }, ['Auf Standardwerte zurücksetzen']);
+  // Verwirft alle Eingaben und steht deshalb abgesetzt am Fuss des Formulars –
+  // nicht neben «Zeitraum hinzufügen», wo es wie eine weitere Eingabe wirkte.
+  const zuruecksetzen = el('button', { type: 'button', class: 'knopf--zurueckhaltend' }, [
+    'Auf Standardwerte zurücksetzen',
+  ]);
 
   formular.append(
-    el('fieldset', { class: 'feldgruppe feldgruppe--zwei' }, [
-      el('legend', { class: 'sr-nur' }, ['Standort, Gebäude und Nutzung']),
-      el('div', { class: 'feld' }, [
-        el('label', { for: 'feld-standort' }, ['Standort']),
-        standortAuswahl,
-      ]),
-      el('div', { class: 'feld' }, [
-        el('label', { for: 'feld-raum' }, ['Raumtyp']),
-        raumAuswahl,
-        raumBeschreibung,
-        raumKennwerte,
-      ]),
-      el('div', { class: 'feld' }, [
-        el('label', { for: 'feld-gebaeude' }, ['Gebäudetyp']),
-        gebaeudeAuswahl,
-        gebaeudeBeschreibung,
-        gebaeudeKennwerte,
-      ]),
-      el('div', { class: 'feld' }, [
-        el('span', { class: 'feld__kopf' }, [
-          el('label', { for: 'feld-ausrichtung' }, ['Fenster zeigen nach']),
-          infofeld(INFO.ausrichtung.thema, INFO.ausrichtung.text),
+    el('fieldset', { class: 'feldgruppe' }, [
+      el('legend', { class: 'feld__titel' }, ['Standort und Raum']),
+      el('div', { class: 'feldgruppe__inhalt' }, [
+        // Der Standort steht allein in einem Paar: So bekommt er die Breite
+        // einer Rasterspalte und fluchtet mit dem Raumtyp darunter, statt eine
+        // dritte Feldbreite einzuführen.
+        el('div', { class: 'feldpaar' }, [
+          el('div', { class: 'feld' }, [
+            el('label', { for: 'feld-standort' }, ['Standort']),
+            standortAuswahl,
+          ]),
         ]),
-        ausrichtungAuswahl,
-        ausrichtungBeschreibung,
-      ]),
-      el('div', { class: 'feld' }, [
-        el('span', { class: 'feld__kopf' }, [
-          el('label', { for: 'feld-sonnenschutz' }, ['Sonnenschutz']),
-          infofeld(INFO.sonnenschutz.thema, INFO.sonnenschutz.text),
+        el('div', { class: 'feldpaar' }, [
+          el('div', { class: 'feld' }, [
+            el('label', { for: 'feld-raum' }, ['Raumtyp']),
+            raumAuswahl,
+            raumBeschreibung,
+            raumKennwerte,
+          ]),
+          el('div', { class: 'feld' }, [
+            el('label', { for: 'feld-gebaeude' }, ['Gebäudetyp']),
+            gebaeudeAuswahl,
+            gebaeudeBeschreibung,
+            gebaeudeKennwerte,
+          ]),
         ]),
-        sonnenschutzAuswahl,
-        sonnenschutzBeschreibung,
       ]),
     ]),
-    el('fieldset', { class: 'feldgruppe feldgruppe--zwei' }, [
-      el('legend', { class: 'feld__titel' }, ['Schwellwerte']),
-      zielTemperatur.wurzel,
-      hysterese.wurzel,
-      minTemperatur.wurzel,
-      el('div', { class: 'feld' }, [
-        el('span', { class: 'feld__titel' }, [
-          'Nachtauskühlung',
-          infofeld(INFO.nachtauskuehlung.thema, INFO.nachtauskuehlung.text),
+    el('fieldset', { class: 'feldgruppe' }, [
+      el('legend', { class: 'feld__titel' }, ['Fenster und Sonne']),
+      el('div', { class: 'feldgruppe__inhalt' }, [
+        el('div', { class: 'feldpaar' }, [
+          el('div', { class: 'feld' }, [
+            el('span', { class: 'feld__kopf' }, [
+              el('label', { for: 'feld-ausrichtung' }, ['Fenster zeigen nach']),
+              infofeld(INFO.ausrichtung.thema, INFO.ausrichtung.text),
+            ]),
+            ausrichtungAuswahl,
+            ausrichtungBeschreibung,
+          ]),
+          el('div', { class: 'feld' }, [
+            el('span', { class: 'feld__kopf' }, [
+              el('label', { for: 'feld-sonnenschutz' }, ['Sonnenschutz']),
+              infofeld(INFO.sonnenschutz.thema, INFO.sonnenschutz.text),
+            ]),
+            sonnenschutzAuswahl,
+            sonnenschutzBeschreibung,
+          ]),
         ]),
-        el('div', { class: 'schalter' }, [
-          nachtSchalter,
-          el('label', { for: 'feld-nacht' }, [
-            'Nachts (22–07 Uhr) zum Lüften auffordern, wenn es draussen kühler ist',
+      ]),
+    ]),
+    el('fieldset', { class: 'feldgruppe' }, [
+      el('legend', { class: 'feld__titel' }, ['Schwellwerte']),
+      el('div', { class: 'feldgruppe__inhalt' }, [
+        el('div', { class: 'feldpaar' }, [zielTemperatur.wurzel, hysterese.wurzel]),
+        el('div', { class: 'feldpaar' }, [
+          minTemperatur.wurzel,
+          el('div', { class: 'feld' }, [
+            el('span', { class: 'feld__titel' }, [
+              'Nachtauskühlung',
+              infofeld(INFO.nachtauskuehlung.thema, INFO.nachtauskuehlung.text),
+            ]),
+            el('div', { class: 'schalter' }, [
+              nachtSchalter,
+              el('label', { for: 'feld-nacht' }, [
+                'Nachts (22–07 Uhr) zum Lüften auffordern, wenn es draussen kühler ist',
+              ]),
+            ]),
           ]),
         ]),
       ]),
     ]),
     ferienBereich,
-    el('div', { class: 'knopfreihe' }, [zuruecksetzen]),
+    el('div', { class: 'knopfreihe knopfreihe--abschluss' }, [zuruecksetzen]),
   );
 
   standortAuswahl.addEventListener('change', () => {
@@ -314,6 +349,7 @@ export function baueEinstellungsformular(
       findeSonnenschutz(einstellungen.sonnenschutzId)?.beschreibung ?? '';
     zeigeGebaeudeInfo(einstellungen.gebaeudetypId, gebaeudeBeschreibung, gebaeudeKennwerte);
     zeigeRaumInfo(einstellungen, raumBeschreibung, raumKennwerte);
+    zusammenfassung.textContent = fasseZusammen(einstellungen);
     // Erreicht die Wunschtemperatur den Vorschlag, blendet er sich aus.
     zeigeTemperaturvorschlag(vorschlagC);
   };
@@ -328,17 +364,36 @@ export function baueEinstellungsformular(
     vorschlagBereich.hidden = !zeigen;
     if (!zeigen || neuC === undefined) return;
 
-    vorschlagText.textContent =
-      `Nach dem Wetter der letzten Tage gelten rund ${formatiereTemperatur(neuC)} als ` +
-      'behaglich (SIA 180). ';
+    // Der sichtbare Text ist Teil des aria-labels – so trifft ihn auch, wer den
+    // Knopf per Sprache anspricht.
+    vorschlagKnopf.textContent = `${formatiereTemperatur(neuC)} übernehmen`;
     vorschlagKnopf.setAttribute(
       'aria-label',
-      `Wunschtemperatur auf ${formatiereTemperatur(neuC)} setzen`,
+      `Wunschtemperatur auf ${formatiereTemperatur(neuC)} übernehmen`,
     );
   };
 
   aktualisiere(start);
   return { aktualisiere, zeigeTemperaturvorschlag };
+}
+
+/**
+ * Einzeiler über der eingeklappten Karte: worauf sich die Empfehlung stützt.
+ *
+ * Ohne ihn müsste man aufklappen, nur um zu sehen, für welchen Ort und welchen
+ * Raum gerechnet wird – die Angaben, die eine Empfehlung überhaupt erst
+ * einordnen.
+ */
+function fasseZusammen(einstellungen: Einstellungen): string {
+  return [
+    findeStation(einstellungen.stationId)?.name,
+    findeRaumtyp(einstellungen.raumtypId)?.name,
+    findeGebaeudetyp(einstellungen.gebaeudetypId)?.name,
+    findeAusrichtung(einstellungen.ausrichtungId)?.name,
+    findeSonnenschutz(einstellungen.sonnenschutzId)?.kurzname,
+  ]
+    .filter((teil): teil is string => teil !== undefined)
+    .join(' · ');
 }
 
 /** Beschreibung und abgeleitete Kennwerte des gewählten Gebäudetyps anzeigen. */
@@ -360,13 +415,23 @@ function zeigeGebaeudeInfo(
   const verzoegerung = phasenverschiebungH(typ.zeitkonstanteGeschlossenH);
 
   kennwerte.append(
-    el('li', {}, [
-      `Wärmeträgheit: ${typ.zeitkonstanteGeschlossenH} h`,
+    chip([
+      `Wärmeträgheit ${typ.zeitkonstanteGeschlossenH} h`,
       infofeld(INFO.gebaeudetyp.thema, INFO.gebaeudetyp.text),
     ]),
-    el('li', {}, [`Aussenschwankung kommt zu ${daempfungProzent} % an`]),
-    el('li', {}, [`Verzögerung: rund ${verzoegerung.toFixed(1)} h`]),
+    chip([`${daempfungProzent} % der Aussenschwankung`]),
+    chip([`${verzoegerung.toFixed(1)} h Verzögerung`]),
   );
+}
+
+/** Kurzer Kennwert als abgesetztes Etikett. */
+function chip(inhalt: (Node | string)[]): HTMLElement {
+  return el('li', { class: 'kennwert' }, inhalt);
+}
+
+/** Erklärender Satz zu den Kennwerten – volle Breite statt Etikett. */
+function kennwertSatz(text: string): HTMLElement {
+  return el('li', { class: 'kennwert kennwert--satz' }, [text]);
 }
 
 /**
@@ -396,9 +461,9 @@ function zeigeRaumInfo(
   const bis = String(raum.belegung.bisStunde).padStart(2, '0');
 
   kennwerte.append(
-    el('li', {}, [`Belegt: ${tage} ${von}–${bis} Uhr`]),
-    el('li', {}, [
-      `Wärmelast: ${raum.belegungslastWProM2} W/m²`,
+    chip([`Belegt ${tage} ${von}–${bis} Uhr`]),
+    chip([
+      `Wärmelast ${raum.belegungslastWProM2} W/m²`,
       infofeld(INFO.raumtyp.thema, INFO.raumtyp.text),
     ]),
   );
@@ -406,19 +471,19 @@ function zeigeRaumInfo(
   if (gebaeude) {
     const anstiegKProH = raum.belegungslastWProM2 / gebaeude.speicherkapazitaetWhProM2K;
     kennwerte.append(
-      el('li', {}, [`Das erwärmt diesen Raum um rund ${anstiegKProH.toFixed(1)} Grad pro Stunde`]),
+      kennwertSatz(`Das erwärmt diesen Raum um rund ${anstiegKProH.toFixed(1)} Grad pro Stunde.`),
     );
   }
 
   if (raum.stosslueftungNoetig) {
-    kennwerte.append(el('li', {}, ['Braucht auch bei Hitze regelmässige Stosslüftung']));
+    kennwerte.append(kennwertSatz('Braucht auch bei Hitze regelmässige Stosslüftung.'));
   }
 
   if (raum.feuchtelastStossweise) {
     kennwerte.append(
-      el('li', {}, [
-        'Nach Duschen, Kochen und Wäschetrocknen kurz kräftig lüften – unabhängig von der Temperatur',
-      ]),
+      kennwertSatz(
+        'Nach Duschen, Kochen und Wäschetrocknen kurz kräftig lüften – unabhängig von der Temperatur.',
+      ),
     );
   }
 }
@@ -502,6 +567,8 @@ interface ZahlenfeldOptionen {
 
 interface Zahlenfeld {
   wurzel: HTMLElement;
+  /** Zeile mit Eingabe und Schrittknöpfen – nimmt Beigaben wie den Vorschlag auf. */
+  eingabezeile: HTMLElement;
   setzeWert(wert: number): void;
 }
 
@@ -509,6 +576,11 @@ interface Zahlenfeld {
  * Zahlenfeld mit Bereichsprüfung: Ungültige Zwischenstände (leeres Feld,
  * Wert ausserhalb der Grenzen) werden nicht übernommen, sondern beim Verlassen
  * des Feldes auf den zuletzt gültigen Wert zurückgesetzt.
+ *
+ * Die Knöpfe «−» und «+» ergänzen die Tastatureingabe. Auf dem Mobilgerät sind
+ * sie der schnellere Weg: Für einen Wert, der sich um halbe Grad ändert, muss
+ * dafür keine Zifferntastatur aufgehen. Die eigenen Pfeilchen der
+ * Zahleneingabe sind mit knapp 10 px zu klein für einen Finger.
  */
 function zahlenfeld(optionen: ZahlenfeldOptionen): Zahlenfeld {
   const { grenzen } = optionen;
@@ -531,6 +603,7 @@ function zahlenfeld(optionen: ZahlenfeldOptionen): Zahlenfeld {
     eingabe.setAttribute('aria-invalid', gueltig ? 'false' : 'true');
     if (!gueltig) return;
     letzterWert = wert;
+    aktualisiereKnoepfe();
     optionen.beiWert(wert);
   };
 
@@ -540,8 +613,55 @@ function zahlenfeld(optionen: ZahlenfeldOptionen): Zahlenfeld {
     eingabe.setAttribute('aria-invalid', 'false');
   });
 
+  const weniger = el(
+    'button',
+    {
+      type: 'button',
+      class: 'stepper__knopf',
+      'aria-label': `${optionen.beschriftung} verringern`,
+      tabindex: -1,
+    },
+    ['−'],
+  );
+  const mehr = el(
+    'button',
+    {
+      type: 'button',
+      class: 'stepper__knopf',
+      'aria-label': `${optionen.beschriftung} erhöhen`,
+      tabindex: -1,
+    },
+    ['+'],
+  );
+
+  // Die Knöpfe stehen bewusst ausserhalb der Tabulatorreihenfolge: Das Feld
+  // selbst nimmt Pfeiltasten schon entgegen, ein dritter Halt je Wert würde
+  // die Tastaturbedienung nur verlängern. Für Zeigegeräte bleiben sie nutzbar.
+  const verschiebe = (richtung: 1 | -1): void => {
+    const roh = letzterWert + richtung * grenzen.schritt;
+    const wert = begrenze(runde(roh, grenzen.schritt), grenzen.min, grenzen.max);
+    if (wert === letzterWert) return;
+    letzterWert = wert;
+    eingabe.value = String(wert);
+    eingabe.setAttribute('aria-invalid', 'false');
+    aktualisiereKnoepfe();
+    optionen.beiWert(wert);
+  };
+
+  weniger.addEventListener('click', () => verschiebe(-1));
+  mehr.addEventListener('click', () => verschiebe(1));
+
+  const aktualisiereKnoepfe = (): void => {
+    weniger.toggleAttribute('disabled', letzterWert <= grenzen.min);
+    mehr.toggleAttribute('disabled', letzterWert >= grenzen.max);
+  };
+
   const beschriftung = el('label', { for: optionen.id }, [
     `${optionen.beschriftung} (${optionen.einheit})`,
+  ]);
+
+  const eingabezeile = el('div', { class: 'eingabezeile' }, [
+    el('div', { class: 'stepper' }, [weniger, eingabe, mehr]),
   ]);
 
   const wurzel = el('div', { class: 'feld' }, [
@@ -551,15 +671,27 @@ function zahlenfeld(optionen: ZahlenfeldOptionen): Zahlenfeld {
           infofeld(optionen.erklaerung.thema, optionen.erklaerung.text),
         ])
       : beschriftung,
-    eingabe,
+    eingabezeile,
     el('p', { class: 'feld__beschreibung', id: hilfeId }, [optionen.hilfe]),
   ]);
 
   return {
     wurzel,
+    eingabezeile,
     setzeWert(wert: number) {
       letzterWert = wert;
       eingabe.value = String(wert);
+      aktualisiereKnoepfe();
     },
   };
+}
+
+/** Auf das Raster der Schrittweite runden – gegen 24.400000000000002. */
+function runde(wert: number, schritt: number): number {
+  const stellen = (String(schritt).split('.')[1] ?? '').length;
+  return Number((Math.round(wert / schritt) * schritt).toFixed(stellen));
+}
+
+function begrenze(wert: number, min: number, max: number): number {
+  return Math.min(Math.max(wert, min), max);
 }

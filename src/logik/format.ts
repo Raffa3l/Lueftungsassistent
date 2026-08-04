@@ -34,6 +34,23 @@ export function formatiereZeitpunkt(zeit: Date, referenz: Date = new Date()): st
   return `${wochentag}, ${formatiereUhrzeit(zeit)}`;
 }
 
+/**
+ * Tagesüberschrift für die Stundentabelle: «Heute, Dienstag 4. August».
+ *
+ * Der Wochentag steht mit dabei, weil Belegung und Empfehlung vom Wochentag
+ * abhängen – «Mittwoch» erklärt eine Zeile, die ein blosses Datum nicht erklärt.
+ */
+export function formatiereTagesueberschrift(zeit: Date, referenz: Date = new Date()): string {
+  // Wochentag und Datum getrennt geholt: `weekday` zusammen mit `day`/`month`
+  // setzt ein Komma dazwischen, das nach «Morgen,» ein zweites Komma ergäbe.
+  const wochentag = zeit.toLocaleDateString('de-CH', { weekday: 'long' });
+  const datum = zeit.toLocaleDateString('de-CH', { day: 'numeric', month: 'long' });
+  const tagesDifferenz = tagesIndex(zeit) - tagesIndex(referenz);
+  if (tagesDifferenz === 0) return `Heute, ${wochentag} ${datum}`;
+  if (tagesDifferenz === 1) return `Morgen, ${wochentag} ${datum}`;
+  return `${wochentag}, ${datum}`;
+}
+
 /** Tagesnummer in lokaler Zeit, für Kalendertagsvergleiche. */
 function tagesIndex(zeit: Date): number {
   return Math.floor(

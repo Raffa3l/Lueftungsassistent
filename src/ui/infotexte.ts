@@ -84,8 +84,19 @@ export const INFO = {
     text:
       'Ab dieser Raumtemperatur gilt der Raum als zu warm. Sie steuert die ' +
       'Dringlichkeit und den Hinweis auf Luftbewegung – nicht, wann geschlossen ' +
-      'wird. Der Vorschlag folgt dem adaptiven Komfortmodell der EN 16798-1: Was ' +
-      'als behaglich gilt, steigt mit dem Wetter der Vortage, gedeckelt bei 26.5 Grad.',
+      'wird.',
+  },
+
+  // Steht beim Vorschlagsknopf, nicht beim Feld: Er erklärt, woher die Zahl
+  // kommt, während das Infofeld oben erklärt, was die Einstellung bewirkt.
+  komfortvorschlag: {
+    thema: 'Vorschlag nach Wetterlage',
+    text:
+      'Was als behaglich gilt, ist keine feste Zahl: Sie steigt mit dem Wetter ' +
+      'der letzten Tage, weil sich Kleidung, Erwartung und Körper an die Lage ' +
+      'anpassen. Der Vorschlag folgt dem adaptiven Komfortmodell der EN 16798-1, ' +
+      'auf dem auch SIA 180 aufbaut – gedeckelt bei 26.5 Grad, weil ein Raum ' +
+      'auch nach einer Hitzewoche darüber nicht mehr als behaglich gilt.',
   },
 
   hysterese: {

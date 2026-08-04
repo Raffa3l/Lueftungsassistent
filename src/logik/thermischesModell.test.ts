@@ -255,7 +255,7 @@ describe('amplitudendaempfung und phasenverschiebungH', () => {
 
       expect(daempfung).toBeGreaterThan(0);
       expect(daempfung).toBeLessThan(0.6);
-      // Realistische Bandbreite für Schweizer Wohnbauten: rund 3 bis 6 Stunden
+      // Realistische Bandbreite für Schweizer Wohn- und Zweckbauten: rund 3 bis 6 Stunden
       expect(verzoegerung).toBeGreaterThan(2.5);
       expect(verzoegerung).toBeLessThan(6.5);
     }

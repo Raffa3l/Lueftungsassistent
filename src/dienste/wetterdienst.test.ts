@@ -1,5 +1,88 @@
-import { describe, expect, it } from 'vitest';
-import { jetztInStationszeit, wandleAntwortUm, WetterdatenFehler } from './wetterdienst.ts';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  jetztInStationszeit,
+  ladeWetterdaten,
+  wandleAntwortUm,
+  WetterdatenFehler,
+} from './wetterdienst.ts';
+import { VORLAUF_TAGE } from '../konfiguration/standardwerte.ts';
+import type { Wetterstation } from '../typen.ts';
+
+/**
+ * Der Abruf selbst wird gegen einen Attrappen-`fetch` geprüft: Welche Parameter
+ * die App anfordert, entscheidet über die Zahlen, mit denen sie rechnet – und
+ * war bis dahin nirgends festgehalten.
+ */
+describe('ladeWetterdaten', () => {
+  const station: Wetterstation = {
+    id: 'zuerich',
+    name: 'Zürich',
+    kanton: 'ZH',
+    breitengrad: 47.3769,
+    laengengrad: 8.5417,
+    hoeheMeter: 408,
+  };
+
+  const antwort = {
+    hourly: { time: ['2026-08-01T00:00'], temperature_2m: [18.2] },
+  };
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** Fängt die angeforderte URL ab und liefert eine gültige Antwort zurück. */
+  async function abgerufeneUrl(): Promise<URL> {
+    let angefordert: string | undefined;
+    vi.stubGlobal('fetch', (ziel: URL | string) => {
+      angefordert = String(ziel);
+      return Promise.resolve(new Response(JSON.stringify(antwort), { status: 200 }));
+    });
+
+    await ladeWetterdaten(station);
+    return new URL(angefordert!);
+  }
+
+  it('fordert das Modell von MeteoSchweiz an', async () => {
+    // Ohne diesen Parameter liefert Open-Meteo «best match» – für die Schweiz
+    // ist das ICON-D2 des DWD statt des feiner aufgelösten Schweizer Modells.
+    expect((await abgerufeneUrl()).searchParams.get('models')).toBe('meteoswiss_icon_seamless');
+  });
+
+  it('fordert genug Vorlauf für das adaptive Komfortmodell an', async () => {
+    const url = await abgerufeneUrl();
+    expect(Number(url.searchParams.get('past_days'))).toBeGreaterThanOrEqual(VORLAUF_TAGE);
+  });
+
+  it('fordert Ort, Höhe und Zeitzone der Station an', async () => {
+    const url = await abgerufeneUrl();
+
+    expect(url.searchParams.get('latitude')).toBe('47.3769');
+    expect(url.searchParams.get('longitude')).toBe('8.5417');
+    // Die Höhe verbessert die Temperaturkorrektur – ohne sie rechnet Davos falsch.
+    expect(url.searchParams.get('elevation')).toBe('408');
+    expect(url.searchParams.get('timezone')).toBe('Europe/Zurich');
+  });
+
+  it('fordert alle Grössen an, die das Modell auswertet', async () => {
+    const angefordert = (await abgerufeneUrl()).searchParams.get('hourly')?.split(',');
+
+    expect(angefordert).toEqual(
+      expect.arrayContaining([
+        'temperature_2m',
+        'relative_humidity_2m',
+        'dew_point_2m',
+        'shortwave_radiation',
+        'direct_normal_irradiance',
+        'diffuse_radiation',
+        'wind_speed_10m',
+      ]),
+    );
+  });
+
+  it('fordert den Wind in Meter pro Sekunde an', async () => {
+    // Voreinstellung wäre km/h – die Zahlen kämen dann 3.6-fach zu gross an.
+    expect((await abgerufeneUrl()).searchParams.get('wind_speed_unit')).toBe('ms');
+  });
+});
 
 describe('wandleAntwortUm', () => {
   const antwort = {

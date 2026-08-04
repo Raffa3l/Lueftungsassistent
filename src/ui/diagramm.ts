@@ -3,6 +3,7 @@ import { fasseStatusbloeckeZusammen } from '../logik/lueftungslogik.ts';
 import { celsius } from '../einheiten.ts';
 import { formatiereTemperatur, formatiereUhrzeit } from '../logik/format.ts';
 import { el, leere, svgEl } from './dom.ts';
+import { glatterPfad } from './kurve.ts';
 import { infofeld } from './infofeld.ts';
 import { INFO } from './infotexte.ts';
 
@@ -265,6 +266,8 @@ function rasterlinien(
   const elemente: SVGElement[] = [];
 
   const start = Math.ceil(bereich.min / schritt) * schritt;
+  const oberster = Math.floor(bereich.max / schritt) * schritt;
+
   for (let wert = start; wert <= bereich.max; wert += schritt) {
     const py = y(wert);
     elemente.push(
@@ -284,7 +287,9 @@ function rasterlinien(
           'text-anchor': 'end',
           style: 'fill: var(--schrift-gedaempft); font-size: 11px',
         },
-        [String(wert)],
+        // Die Einheit steht einmal am obersten Wert – an jeder Marke wiederholt
+        // wäre sie Lärm, ganz ohne sie bliebe die Achse eine nackte Zahlenreihe.
+        [wert === oberster ? `${wert} °C` : String(wert)],
       ),
     );
   }
@@ -364,12 +369,19 @@ function jetztMarkierung(px: number, hoehe: number): SVGElement {
   ]);
 }
 
+/**
+ * Datenreihe als weiche Kurve.
+ *
+ * Statt einer Polylinie aus Stundenwerten – die an jeder vollen Stunde einen
+ * Knick bekäme – ein Pfad mit monotoner Interpolation (siehe `kurve.ts`). Die
+ * Stützpunkte bleiben exakt getroffen, weich wird nur die Strecke dazwischen.
+ */
 function linie(
   punkte: readonly [number, number][],
   attribute: Record<string, string | number>,
 ): SVGElement {
-  return svgEl('polyline', {
-    points: punkte.map(([px, py]) => `${px.toFixed(1)},${py.toFixed(1)}`).join(' '),
+  return svgEl('path', {
+    d: glatterPfad(punkte),
     fill: 'none',
     'stroke-linejoin': 'round',
     'stroke-linecap': 'round',
@@ -424,7 +436,27 @@ function beschreibeDiagramm(stunden: readonly SimulationsStunde[]): string {
 }
 
 /** Legende zum Diagramm, inklusive Schalter für die Vergleichslinie. */
-export function baueLegende(
+export function baueLegende(behaelter: HTMLElement): void {
+  leere(behaelter);
+
+  behaelter.append(
+    legendeneintrag('Aussentemperatur', 'var(--serie-aussen)'),
+    legendeneintrag('Raumtemperatur (berechnet)', 'var(--serie-innen)'),
+    el('span', { class: 'legende__eintrag' }, [
+      el('span', { class: 'marke marke--flaeche' }),
+      'Lüften empfohlen',
+    ]),
+  );
+}
+
+/**
+ * Schalter für die Vergleichslinie «ohne Lüften».
+ *
+ * Er sitzt über dem Diagramm statt in der Legende: In der Legende stand ein
+ * Bedienelement zwischen drei reinen Beschriftungen und war als solches kaum zu
+ * erkennen. Die Legende erklärt jetzt nur noch, was zu sehen ist.
+ */
+export function baueVergleichsschalter(
   behaelter: HTMLElement,
   zeigeVergleich: boolean,
   beiUmschalten: (aktiv: boolean) => void,
@@ -436,13 +468,7 @@ export function baueLegende(
   schalter.addEventListener('change', () => beiUmschalten(schalter.checked));
 
   behaelter.append(
-    legendeneintrag('Aussentemperatur', 'var(--serie-aussen)'),
-    legendeneintrag('Raumtemperatur (berechnet)', 'var(--serie-innen)'),
-    el('span', { class: 'legende__eintrag' }, [
-      el('span', { class: 'marke marke--flaeche' }),
-      'Lüften empfohlen',
-    ]),
-    el('span', { class: 'legende__eintrag' }, [
+    el('span', { class: 'schalter schalter--klein' }, [
       schalter,
       el('label', { for: 'vergleich-schalter' }, ['Vergleich: ohne Lüften']),
       infofeld(INFO.vergleichOhneLueften.thema, INFO.vergleichOhneLueften.text),

@@ -32,18 +32,35 @@
           </div>
         </section>
 
-        <!-- Einstellungen -->
+        <!--
+          Einstellungen: eingeklappt, weil sie einmal gesetzt und danach selten
+          geändert werden. Die Zusammenfassungszeile zeigt den Rechenstand, ohne
+          dass man dafür aufklappen muss.
+        -->
         <section class="karte" aria-labelledby="einstellungen-titel">
-          <h2 id="einstellungen-titel">Einstellungen</h2>
-          <p class="hinweis">
-            Die Auswahl wird auf diesem Gerät gespeichert und beim nächsten Besuch automatisch geladen.
-          </p>
-          <form id="einstellungen-formular" novalidate></form>
+          <details class="klappe">
+            <summary class="klappe__kopf">
+              <span class="klappe__text">
+                <h2 id="einstellungen-titel">Einstellungen</h2>
+                <span id="einstellungen-zusammenfassung" class="klappe__zusammenfassung"></span>
+              </span>
+              <span class="klappe__pfeil" aria-hidden="true"></span>
+            </summary>
+            <div class="klappe__inhalt">
+              <p class="hinweis">
+                Die Auswahl wird auf diesem Gerät gespeichert und beim nächsten Besuch automatisch geladen.
+              </p>
+              <form id="einstellungen-formular" novalidate></form>
+            </div>
+          </details>
         </section>
 
         <!-- Temperaturverlauf -->
         <section class="karte" aria-labelledby="verlauf-titel">
-          <h2 id="verlauf-titel">Temperaturverlauf</h2>
+          <div class="karte__kopf">
+            <h2 id="verlauf-titel">Temperaturverlauf</h2>
+            <div id="diagramm-schalter" class="karte__werkzeuge"></div>
+          </div>
           <figure class="diagramm-figur">
             <div id="diagramm" class="diagramm"></div>
             <figcaption id="diagramm-legende" class="legende"></figcaption>
@@ -59,8 +76,9 @@
 
       <footer class="fuss">
         <p>
-          Wetterdaten: <a href="https://open-meteo.com/" rel="noopener noreferrer" target="_blank">Open-Meteo</a>
-          (für die Schweiz auf Basis des Modells ICON-CH von MeteoSchweiz).
+          Wetterdaten: <a href="https://open-meteo.com/" rel="noopener noreferrer" target="_blank">Open-Meteo</a>,
+          gerechnet mit ICON-CH1 und ICON-CH2 von MeteoSchweiz – rund 1 km Maschenweite
+          für den ersten Tag, danach 2 km.
         </p>
         <p>
           Die Raumtemperatur wird aus Gebäude- und Raumtyp berechnet, nicht gemessen. Sie ist eine

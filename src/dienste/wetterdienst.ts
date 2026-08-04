@@ -12,8 +12,8 @@ import { taupunktAusFeuchte } from '../logik/feuchte.ts';
  * die offenen CSV-Feeds auf opendata.swiss enthalten Messwerte, aber keine
  * stündliche Prognose – und ohne Prognose kann der Assistent nicht sagen,
  * wann die Fenster zu schliessen sind. Open-Meteo ist kostenlos, benötigt
- * keinen Schlüssel, liefert CORS-Header und rechnet für die Schweiz mit dem
- * hochaufgelösten ICON-CH-Modell von MeteoSchweiz.
+ * keinen Schlüssel, liefert CORS-Header und gibt die Modelle von MeteoSchweiz
+ * weiter (siehe `MODELL`).
  *
  * Zeitzonen-Konvention (wichtig):
  * Die API liefert mit `timezone=Europe/Zurich` lokale Zeitstempel ohne Offset
@@ -26,6 +26,27 @@ import { taupunktAusFeuchte } from '../logik/feuchte.ts';
 const API_BASIS_URL = 'https://api.open-meteo.com/v1/forecast';
 const ZEITZONE = 'Europe/Zurich';
 const PROGNOSE_TAGE = 3;
+
+/**
+ * Wettermodell – muss ausdrücklich gewählt werden.
+ *
+ * Ohne diesen Parameter nimmt Open-Meteo seine weltweite Voreinstellung
+ * «best match», und die ist für die Schweiz **ICON-D2 des Deutschen
+ * Wetterdienstes**, nicht das Modell von MeteoSchweiz. Zwischen beiden liegen
+ * im Sommer mehrere Grad – bei einer Schaltdifferenz von 2 Grad genug, um die
+ * Empfehlung umzukehren.
+ *
+ * MeteoSchweiz bietet über Open-Meteo drei Kennungen an:
+ *
+ *   meteoswiss_icon_ch1       ~1 km, aber nur 33 Stunden Prognose
+ *   meteoswiss_icon_ch2       ~2 km, 120 Stunden
+ *   meteoswiss_icon_seamless  ICON-CH1, danach ICON-CH2
+ *
+ * Die App braucht 72 Stunden (`PROGNOSE_TAGE`) und nimmt deshalb die nahtlose
+ * Verkettung: die feine Auflösung für die Stunden, in denen die Empfehlung
+ * zählt, und trotzdem einen Ausblick über drei Tage.
+ */
+const MODELL = 'meteoswiss_icon_seamless';
 
 /** Fehler beim Laden der Wetterdaten – Meldung ist für die Anzeige geeignet. */
 export class WetterdatenFehler extends Error {
@@ -73,6 +94,7 @@ export async function ladeWetterdaten(
   url.searchParams.set('timezone', ZEITZONE);
   url.searchParams.set('past_days', String(VORLAUF_TAGE));
   url.searchParams.set('forecast_days', String(PROGNOSE_TAGE));
+  url.searchParams.set('models', MODELL);
 
   let antwort: Response;
   try {
