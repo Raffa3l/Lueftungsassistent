@@ -6,7 +6,7 @@
  *
  * Enthalten sind die acht Tage, die praktisch überall in der Schweiz frei sind.
  * **Nicht enthalten sind kantonale Feiertage** (Berchtoldstag, Fronleichnam,
- * Mariä Himmelfahrt, Allerheiligen, Sechseläuten, Jeûne genevois und weitere) –
+ * Mariä Himmelfahrt, Allerheiligen, Sechseläuten, Jeûne genevois und weitere),
  * sie gelten je nach Kanton und Konfession unterschiedlich. Wer sie braucht,
  * trägt sie als eintägigen Ferienzeitraum in den Einstellungen ein.
  */
@@ -68,7 +68,7 @@ export function feiertageImJahr(jahr: number): Feiertag[] {
 /**
  * Feiertag zu einem Datum, sonst `undefined`.
  *
- * Die Feiertage eines Jahres werden zwischengespeichert – die Simulation fragt
+ * Die Feiertage eines Jahres werden zwischengespeichert, die Simulation fragt
  * für jede der rund 150 Stunden nach.
  */
 const zwischenspeicher = new Map<number, Map<string, string>>();

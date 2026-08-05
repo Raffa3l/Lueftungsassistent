@@ -28,7 +28,7 @@ export interface BewertungsEingabe {
   einstellungen: Einstellungen;
   /**
    * Fensterstatus der Vorstunde. Erzeugt die Hysterese: ein offenes Fenster
-   * bleibt offen, bis die Aussenluft die Raumtemperatur erreicht – geschlossen
+   * bleibt offen, bis die Aussenluft die Raumtemperatur erreicht. Geschlossen
    * wird erst wieder geöffnet, wenn es draussen um die Hysterese kühler ist.
    */
   vorherigerStatus: Fensterstatus;
@@ -37,7 +37,7 @@ export interface BewertungsEingabe {
   /** Verlangt die Nutzung regelmässiges Stosslüften (Luftqualität)? */
   stosslueftungNoetig?: boolean;
   /**
-   * Taupunkt der Aussenluft. Ohne Angabe entfallen die Feuchtehinweise – der
+   * Taupunkt der Aussenluft. Ohne Angabe entfallen die Feuchtehinweise. Der
    * Lüftungsentscheid selbst bleibt davon unberührt.
    */
   taupunktAussenC?: Celsius;
@@ -59,7 +59,7 @@ export function istNachtstunde(stundeDesTages: number): boolean {
 }
 
 /**
- * Kernregel des Assistenten – entscheidet für eine Stunde, ob die Fenster
+ * Kernregel des Assistenten. Sie entscheidet für eine Stunde, ob die Fenster
  * offen oder geschlossen sein sollten.
  *
  * Reihenfolge der Regeln (die erste zutreffende gewinnt):
@@ -69,7 +69,7 @@ export function istNachtstunde(stundeDesTages: number): boolean {
  *  4. sonst → schliessen (draussen gleich warm oder wärmer)
  *
  * Der Entscheid selbst hängt allein an der Temperatur. Feuchte und Wind
- * erzeugen nur Zusatzhinweise und kehren die Empfehlung nie um – kühlere
+ * erzeugen nur Zusatzhinweise und kehren die Empfehlung nie um: Kühlere
  * Aussenluft kühlt auch dann, wenn sie feucht ist, und Stosslüften bleibt eine
  * kurze Ausnahme statt eines Dauerzustands.
  */
@@ -84,19 +84,35 @@ export function bewerteStunde(eingabe: BewertungsEingabe): Empfehlung {
   const hinweiseZu = hinweiseBeiGeschlossenenFenstern(eingabe);
   const hinweiseOffen = hinweiseBeiOffenenFenstern(eingabe);
 
+  // Ist jemand da, der ein Fenster bedienen könnte? Nachts nicht, auch nicht in
+  // der Wohnung, wo zwar jemand liegt, aber schläft.
+  const niemandDa = nacht || eingabe.raumBelegt === false;
+
   // 1. Weiteres Auskühlen wäre unangenehm.
   if (raumtemperaturC <= einstellungen.minRaumtemperaturC) {
     return geschlossen(
-      `Innen sind es ${formatiereTemperatur(raumtemperaturC)} – das ist bereits an der eingestellten Untergrenze. Weiter auskühlen lohnt sich nicht.`,
+      `Innen sind es ${formatiereTemperatur(raumtemperaturC)}, das ist bereits an der eingestellten Untergrenze. Weiter auskühlen lohnt sich nicht.`,
       'normal',
       hinweiseZu,
     );
   }
 
-  // 2. Nachtauskühlung wurde vom Nutzer abgeschaltet (z. B. Lärm, Insekten, Sicherheit).
-  if (nacht && !einstellungen.nachtauskuehlung) {
+  // 2. Ohne Nachtauskühlung bleibt zu, wo niemand ein Fenster bedienen kann.
+  //
+  //    Das betrifft zwei Fälle: die Nacht, auch in der Wohnung, wo jemand
+  //    schläft, und die Stunden ausserhalb der Nutzungszeit. Der zweite ist
+  //    der Grund für diese Erweiterung: Ein Schulzimmer ist ab 16 Uhr leer, die
+  //    Nacht beginnt aber erst um 22. Dazwischen riet die App zum Öffnen, ohne
+  //    dass jemand da gewesen wäre, der es hätte tun können.
+  //
+  //    Wer abends oder übers Wochenende lüften lässt (Hauswart, gekippte
+  //    Fenster), schaltet die Nachtauskühlung ein und bekommt die Empfehlung
+  //    wie bisher.
+  if (!einstellungen.nachtauskuehlung && niemandDa) {
     return geschlossen(
-      'Die Nachtauskühlung ist in den Einstellungen deaktiviert – nachts bleiben die Fenster zu.',
+      nacht
+        ? 'Die Nachtauskühlung ist in den Einstellungen deaktiviert, nachts bleiben die Fenster zu.'
+        : 'Der Raum wird gerade nicht genutzt, und die Nachtauskühlung ist deaktiviert, die Fenster bleiben zu.',
       'normal',
       hinweiseZu,
     );
@@ -114,7 +130,7 @@ export function bewerteStunde(eingabe: BewertungsEingabe): Empfehlung {
     };
   }
 
-  // 4. Draussen ist es gleich warm oder wärmer – Wärme draussen halten.
+  // 4. Draussen ist es gleich warm oder wärmer, Wärme draussen halten.
   return geschlossen(
     begruendungSchliessen(differenzK),
     differenzK < -1 ? 'hoch' : 'normal',
@@ -142,14 +158,14 @@ function geschlossen(
  * Gesundheit betrifft, danach die Bauphysik, zuletzt das Komfortliche.
  *
  * Die Reihenfolge ist eine fachliche Festlegung und gehört deshalb hierhin und
- * nicht in die Oberfläche – die entscheidet nur noch, wie viele Hinweise sie
+ * nicht in die Oberfläche. Die entscheidet nur noch, wie viele Hinweise sie
  * davon zeigt. Weil sie nur die ersten beiden zeigt (`ui/dashboard.ts`), ist
  * der erste Platz nicht kosmetisch: Was hier nach hinten rutscht, verschwindet
  * dort ganz.
  *
  * Als `Record` über alle Hinweisarten geführt, nicht als Liste: So ist eine
  * fehlende Art ein Übersetzungsfehler. Als Liste rutschte eine vergessene Art
- * über `indexOf` mit −1 stillschweigend an den Anfang – richtig für den
+ * über `indexOf` mit −1 stillschweigend an den Anfang, richtig für den
  * Wetterschutz, aber aus dem falschen Grund und beim nächsten «Aufräumen»
  * wieder verloren.
  */
@@ -170,7 +186,7 @@ function ordneHinweise(hinweise: readonly Hinweis[]): Hinweis[] {
  * ------------------------------------------------------------------ */
 
 /**
- * Ab dieser Raumtemperatur nützt ein Ventilator nichts mehr – allerdings nur
+ * Ab dieser Raumtemperatur nützt ein Ventilator nichts mehr, allerdings nur
  * bei trockener Luft (siehe `VENTILATOR_TROCKEN_PROZENT`).
  *
  * Oberhalb der Hauttemperatur von rund 34 °C führt bewegte Luft dem Körper
@@ -185,12 +201,12 @@ const VENTILATOR_GRENZE_C = celsius(35);
 const VENTILATOR_TROCKEN_PROZENT = 40;
 
 /**
- * Ab dieser Raumtemperatur wird Luftbewegung als angenehm empfunden – darunter
+ * Ab dieser Raumtemperatur wird Luftbewegung als angenehm empfunden, darunter
  * stört sie als Zugluft.
  *
  * EN 16798-1 setzt für den Sommer 0.2 m/s bei höchstens 26 °C an und lässt
  * höhere Geschwindigkeiten ausdrücklich erst **über 26 °C** zu, sofern die
- * Person den Luftstrom selbst beeinflussen kann – genau das trifft auf einen
+ * Person den Luftstrom selbst beeinflussen kann, und genau das trifft auf einen
  * Ventilator zu. Unterhalb davon steigt das Zugluftrisiko nach ISO 7730, je
  * kühler es ist.
  *
@@ -209,7 +225,7 @@ function hinweiseBeiGeschlossenenFenstern(eingabe: BewertungsEingabe): Hinweis[]
   if (eingabe.stosslueftungNoetig === true) hinweise.push(STOSSLUEFTUNG);
 
   // Wenn die Fenster zu bleiben müssen, ist Luftbewegung im Raum das einzige
-  // verbleibende Mittel – und ein wirksames. Beide Bedingungen müssen erfüllt
+  // verbleibende Mittel, und ein wirksames. Beide Bedingungen müssen erfüllt
   // sein: Es muss dem Nutzer zu warm sein *und* warm genug, dass bewegte Luft
   // erfrischt statt zu ziehen.
   if (
@@ -251,14 +267,14 @@ const VENTILATOR: Hinweis = {
   text:
     'Luftbewegung hilft auch bei geschlossenen Fenstern: Ein Ventilator senkt das ' +
     'Temperaturempfinden um rund zwei bis drei Grad. Er kühlt den Menschen, nicht ' +
-    'den Raum – im leeren Zimmer heizt er nur, also beim Hinausgehen abstellen.',
+    'den Raum. Im leeren Zimmer heizt er nur, also beim Hinausgehen abstellen.',
 };
 
 const TROCKENE_HITZE: Hinweis = {
   art: 'kuehlung',
   kuerzel: 'trinken',
   text:
-    'Bei dieser trockenen Hitze kühlt ein Ventilator kaum noch – die bewegte Luft ' +
+    'Bei dieser trockenen Hitze kühlt ein Ventilator kaum noch: Die bewegte Luft ' +
     'wärmt eher, als sie kühlt. Wichtiger sind jetzt regelmässiges Trinken und ' +
     'kühle Umschläge.',
 };
@@ -284,7 +300,7 @@ function hinweiseBeiOffenenFenstern(eingabe: BewertungsEingabe): Hinweis[] {
   if (schutz) hinweise.push(schutz);
 
   if (taupunktC !== undefined) {
-    // Tauwasser ist das ernstere Problem und schliesst den Schwülehinweis aus –
+    // Tauwasser ist das ernstere Problem und schliesst den Schwülehinweis aus,
     // beide zugleich wären dieselbe Aussage in zwei Sätzen.
     if (drohtKondensation(taupunktC, eingabe.raumtemperaturC)) hinweise.push(KONDENSATION);
     else if (istSchwuel(taupunktC)) hinweise.push(SCHWUELE);
@@ -304,7 +320,7 @@ function hinweiseBeiOffenenFenstern(eingabe: BewertungsEingabe): Hinweis[] {
  * Warnungen vor Sturm- und Wasserschaden
  *
  * Sie ändern die Empfehlung nicht. Regen kühlt die Luft ab und ist thermisch
- * oft die beste Lüftungsgelegenheit des Tages – ein Fenster auf Kipp ist dann
+ * oft die beste Lüftungsgelegenheit des Tages, ein Fenster auf Kipp ist dann
  * eine vernünftige Entscheidung, die der App nicht zusteht. Sie sagt, worauf
  * zu achten ist, und überlässt den Entscheid dem Menschen am Fenster.
  * ------------------------------------------------------------------ */
@@ -330,7 +346,7 @@ const REGEN_AB_MM_PRO_H = 0.5;
 
 /**
  * WMO-Wettercodes für Gewitter: 95 leicht bis mässig, 97 schwer, 96 und 99 mit
- * Hagel. Open-Meteo liefert derzeit nur 95, 96 und 99 – 97 steht trotzdem hier,
+ * Hagel. Open-Meteo liefert derzeit nur 95, 96 und 99. Der Code 97 steht trotzdem hier,
  * damit das schwerste Gewitter nicht durchrutscht, falls das Modell es doch
  * einmal meldet.
  */
@@ -359,7 +375,7 @@ const GEWITTER: Hinweis = {
   kuerzel: 'Gewitter',
   text:
     'Gewitter angesagt: Sturmböen und Starkregen setzen oft binnen Minuten ein. ' +
-    'Offene Fenster jetzt im Auge behalten – kühler wird es nach dem Durchzug ' +
+    'Offene Fenster jetzt im Auge behalten, kühler wird es nach dem Durchzug ' +
     'ohnehin.',
 };
 
@@ -384,7 +400,7 @@ const REGEN: Hinweis = {
   kuerzel: 'Regen',
   text:
     'Es regnet: Bei offenem Fenster wird das Fensterbrett nass, bei Wind auch ' +
-    'der Boden davor. Regenluft ist zum Kühlen gut – ein gekipptes Fenster mit ' +
+    'der Boden davor. Regenluft ist zum Kühlen gut, ein gekipptes Fenster mit ' +
     'Blick darauf reicht meist.',
 };
 
@@ -417,7 +433,7 @@ const QUERLUEFTEN: Hinweis = {
   art: 'wind',
   kuerzel: 'querlüften',
   text:
-    'Es weht spürbarer Wind – jetzt quer lüften: Zwei gegenüberliegende Fenster ' +
+    'Es weht spürbarer Wind, jetzt quer lüften: Zwei gegenüberliegende Fenster ' +
     'tauschen die Luft um ein Vielfaches schneller als ein einzelnes.',
 };
 
@@ -443,17 +459,17 @@ function begruendungOeffnen(
     return `Nachtauskühlung: Draussen ist es ${unterschied} kühler. Jetzt lüften kühlt die Bausubstanz für morgen aus.`;
   }
   if (raumtemperaturC > einstellungen.zielTemperaturC) {
-    return `Draussen ist es ${unterschied} kühler als drinnen – Lüften senkt die Raumtemperatur spürbar.`;
+    return `Draussen ist es ${unterschied} kühler als drinnen, Lüften senkt die Raumtemperatur spürbar.`;
   }
-  return `Draussen ist es ${unterschied} kühler – eine gute Gelegenheit, Kühle auf Vorrat einzulagern.`;
+  return `Draussen ist es ${unterschied} kühler, eine gute Gelegenheit, Kühle auf Vorrat einzulagern.`;
 }
 
 function begruendungSchliessen(differenzK: Kelvin): string {
   if (differenzK < -1) {
-    return `Draussen ist es ${formatiereDifferenz(differenzK)} wärmer als drinnen – geschlossene Fenster halten die Hitze jetzt draussen.`;
+    return `Draussen ist es ${formatiereDifferenz(differenzK)} wärmer als drinnen, geschlossene Fenster halten die Hitze jetzt draussen.`;
   }
   if (differenzK < 0) {
-    return 'Draussen ist es bereits leicht wärmer als drinnen – Lüften würde Wärme hereinbringen.';
+    return 'Draussen ist es bereits leicht wärmer als drinnen, Lüften würde Wärme hereinbringen.';
   }
   return 'Der Temperaturunterschied ist zu klein: Lüften bringt kaum Abkühlung, aber Feuchte und Staub.';
 }
@@ -493,7 +509,7 @@ export function findeNaechstenWechsel(
 }
 
 /**
- * Fasst zusammenhängende Stunden mit gleichem Fensterstatus zu Blöcken zusammen –
+ * Fasst zusammenhängende Stunden mit gleichem Fensterstatus zu Blöcken zusammen,
  * Grundlage für die Zeitleiste und die schraffierten Bereiche im Diagramm.
  */
 export interface Statusblock {

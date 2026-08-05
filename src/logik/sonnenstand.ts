@@ -4,14 +4,14 @@ import { wattProM2, type WattProM2 } from '../einheiten.ts';
  * Sonnenstand und Einstrahlung auf eine senkrechte Fassade.
  *
  * Warum überhaupt? Die Wetter-API liefert die Strahlung auf die **waagrechte**
- * Fläche. Für ein Fenster zählt aber der Einfallswinkel auf die Fassade – und
+ * Fläche. Für ein Fenster zählt aber der Einfallswinkel auf die Fassade, und
  * der hängt an der Himmelsrichtung:
  *
  *   Nord   nur Diffusstrahlung, rund 100–150 W/m²
- *   Süd    mittags 400–500 W/m² – die hoch stehende Sommersonne streift die
+ *   Süd    mittags 400–500 W/m², die hoch stehende Sommersonne streift die
  *          Fassade nur, deshalb ist Süd im Sommer günstiger als sein Ruf
  *   Ost    morgens 600–700 W/m², wenn der Raum noch kühl ist
- *   West   nachmittags 600–700 W/m² – der kritische Fall, weil die Spitze mit
+ *   West   nachmittags 600–700 W/m², der kritische Fall, weil die Spitze mit
  *          der wärmsten Aussenluft und einem aufgeheizten Gebäude zusammenfällt
  *
  * Gerechnet wird selbst und nicht über den API-Parameter `global_tilted_
@@ -19,7 +19,7 @@ import { wattProM2, type WattProM2 } from '../einheiten.ts';
  * Nur ein Standortwechsel lädt Daten nach, alles andere wird lokal gerechnet.
  *
  * Genauigkeit: Die Näherungen für Deklination und Zeitgleichung liegen im
- * Bereich weniger Bogenminuten – bei stündlicher Auflösung und einer
+ * Bereich weniger Bogenminuten, bei stündlicher Auflösung und einer
  * Wetterprognose als Eingangsgrösse weit unterhalb der übrigen Unsicherheiten.
  */
 
@@ -69,7 +69,7 @@ export function istSommerzeit(zeit: Date): boolean {
 }
 
 /**
- * Zeitgleichung in Minuten – der Unterschied zwischen wahrer und mittlerer
+ * Zeitgleichung in Minuten, der Unterschied zwischen wahrer und mittlerer
  * Sonnenzeit, verursacht durch die elliptische Erdbahn und die Achsneigung.
  */
 export function zeitgleichungMinuten(zeit: Date): number {
@@ -126,7 +126,7 @@ export interface Strahlung {
   direktNormalWProM2: WattProM2;
   /** Diffuse Himmelsstrahlung auf die Waagrechte (DHI). */
   diffusWProM2: WattProM2;
-  /** Globalstrahlung auf die Waagrechte (GHI) – für die Bodenreflexion. */
+  /** Globalstrahlung auf die Waagrechte (GHI), für die Bodenreflexion. */
   globalWProM2: WattProM2;
 }
 
@@ -136,7 +136,7 @@ export interface Strahlung {
  *
  * Drei Anteile:
  *   direkt   DNI · cos(Einfallswinkel), nur wenn die Sonne die Fassade trifft
- *   diffus   halbe Himmelsstrahlung – die Fassade sieht eine Halbkugel
+ *   diffus   halbe Himmelsstrahlung, die Fassade sieht eine Halbkugel
  *   Reflex   halbe Globalstrahlung mal Bodenalbedo
  */
 export function fassadenstrahlungWProM2(

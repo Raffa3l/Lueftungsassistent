@@ -88,7 +88,7 @@ describe('istBelegt', () => {
   });
 
   it('ignoriert den Kalender, solange keiner übergeben wird', () => {
-    // Der 1. August ist Bundesfeier – ohne Kalender darf das nichts ändern
+    // Der 1. August ist Bundesfeier, ohne Kalender darf das nichts ändern
     expect(istBelegt(new Date(2026, 7, 3, 10), schulzimmer)).toBe(true);
   });
 
@@ -147,7 +147,7 @@ describe('istBelegt mit Kalender', () => {
   };
 
   it('lässt das Schulzimmer in den Ferien leer, auch während der Unterrichtszeit', () => {
-    // Montag, 3. August 2026, 10 Uhr – ohne Ferien wäre der Raum belegt
+    // Montag, 3. August 2026, 10 Uhr, ohne Ferien wäre der Raum belegt
     const zeitpunkt = new Date(2026, 7, 3, 10);
 
     expect(istBelegt(zeitpunkt, schulzimmer)).toBe(true);

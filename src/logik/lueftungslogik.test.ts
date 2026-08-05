@@ -30,7 +30,7 @@ describe('istNachtstunde', () => {
   });
 });
 
-describe('bewerteStunde – Grundregeln', () => {
+describe('bewerteStunde: Grundregeln', () => {
   const einstellungen = testEinstellungen({ hystereseK: kelvin(2), minRaumtemperaturC: celsius(20), zielTemperaturC: celsius(24) });
 
   it('empfiehlt schliessen, wenn es draussen wärmer ist als drinnen', () => {
@@ -85,7 +85,7 @@ describe('bewerteStunde – Grundregeln', () => {
   });
 });
 
-describe('bewerteStunde – Hysterese', () => {
+describe('bewerteStunde: Hysterese', () => {
   const einstellungen = testEinstellungen({ hystereseK: kelvin(2), minRaumtemperaturC: celsius(20) });
 
   it('hält ein offenes Fenster offen, solange es draussen überhaupt kühler ist', () => {
@@ -133,7 +133,7 @@ describe('bewerteStunde – Hysterese', () => {
   });
 });
 
-describe('bewerteStunde – Nachtauskühlung', () => {
+describe('bewerteStunde: Nachtauskühlung', () => {
   it('empfiehlt nachts zu lüften und begründet es mit der Nachtauskühlung', () => {
     const empfehlung = bewerteStunde({
       aussentemperaturC: celsius(17),
@@ -172,14 +172,80 @@ describe('bewerteStunde – Nachtauskühlung', () => {
 
     expect(empfehlung.status).toBe('oeffnen');
   });
+
+  /*
+   * Ausserhalb der Nutzungszeit ist niemand da, der ein Fenster öffnen könnte.
+   * Ein Schulzimmer ist ab 16 Uhr leer, die Nacht beginnt aber erst um 22,
+   * dazwischen riet die App zum Lüften ins Leere.
+   */
+  const abends = {
+    aussentemperaturC: celsius(17),
+    raumtemperaturC: celsius(26),
+    stundeDesTages: 20,
+    vorherigerStatus: 'schliessen' as const,
+  };
+
+  it('lässt zu, wenn der Raum leer steht und die Nachtauskühlung aus ist', () => {
+    const empfehlung = bewerteStunde({
+      ...abends,
+      einstellungen: testEinstellungen({ nachtauskuehlung: false }),
+      raumBelegt: false,
+    });
+
+    expect(empfehlung.status).toBe('schliessen');
+    expect(empfehlung.begruendung).toContain('nicht genutzt');
+  });
+
+  it('lüftet im leeren Raum, sobald die Nachtauskühlung eingeschaltet ist', () => {
+    // Für gekippte Fenster oder den Hauswart, der abends durchgeht.
+    const empfehlung = bewerteStunde({
+      ...abends,
+      einstellungen: testEinstellungen({ nachtauskuehlung: true }),
+      raumBelegt: false,
+    });
+
+    expect(empfehlung.status).toBe('oeffnen');
+  });
+
+  it('lüftet im belegten Raum unabhängig von der Nachtauskühlung', () => {
+    const empfehlung = bewerteStunde({
+      ...abends,
+      einstellungen: testEinstellungen({ nachtauskuehlung: false }),
+      raumBelegt: true,
+    });
+
+    expect(empfehlung.status).toBe('oeffnen');
+  });
+
+  it('ändert nichts, wenn die Belegung gar nicht angegeben ist', () => {
+    // Aufrufer ohne Raumtyp, etwa Tests des thermischen Modells, sollen
+    // dieselbe Empfehlung bekommen wie bisher.
+    const empfehlung = bewerteStunde({
+      ...abends,
+      einstellungen: testEinstellungen({ nachtauskuehlung: false }),
+    });
+
+    expect(empfehlung.status).toBe('oeffnen');
+  });
+
+  it('begründet nachts weiterhin mit der Nachtauskühlung, nicht mit der Belegung', () => {
+    const empfehlung = bewerteStunde({
+      ...abends,
+      stundeDesTages: 2,
+      einstellungen: testEinstellungen({ nachtauskuehlung: false }),
+      raumBelegt: false,
+    });
+
+    expect(empfehlung.begruendung).toContain('nachts');
+  });
 });
 
-/** Die Arten der Zusatzhinweise – Tests prüfen gezielt eine davon, nicht den Text. */
+/** Die Arten der Zusatzhinweise: Tests prüfen gezielt eine davon, nicht den Text. */
 function arten(empfehlung: Empfehlung): Hinweisart[] {
   return empfehlung.zusatzhinweise.map((hinweis) => hinweis.art);
 }
 
-describe('bewerteStunde – Stosslüftung in belegten Räumen', () => {
+describe('bewerteStunde: Stosslüftung in belegten Räumen', () => {
   const einstellungen = testEinstellungen({ hystereseK: kelvin(2), minRaumtemperaturC: celsius(20) });
   const hitze = {
     aussentemperaturC: celsius(33),
@@ -192,7 +258,7 @@ describe('bewerteStunde – Stosslüftung in belegten Räumen', () => {
   it('ergänzt den Hinweis, wenn ein belegter Raum die Fenster zu haben soll', () => {
     const empfehlung = bewerteStunde({ ...hitze, raumBelegt: true, stosslueftungNoetig: true });
 
-    // Die Empfehlung wird nicht umgekehrt – der Hinweis kommt dazu. Neben der
+    // Die Empfehlung wird nicht umgekehrt, der Hinweis kommt dazu. Neben der
     // Luftqualität meldet sich die Kühlung, weil es über der Wunschtemperatur
     // liegt; die Rangfolge stellt die Luftqualität nach vorn.
     expect(empfehlung.status).toBe('schliessen');
@@ -247,7 +313,7 @@ describe('bewerteStunde – Stosslüftung in belegten Räumen', () => {
   });
 });
 
-describe('bewerteStunde – Kühlungshinweis bei geschlossenen Fenstern', () => {
+describe('bewerteStunde: Kühlungshinweis bei geschlossenen Fenstern', () => {
   const einstellungen = testEinstellungen({ zielTemperaturC: celsius(24) });
   const hitze = {
     aussentemperaturC: celsius(33),
@@ -275,7 +341,7 @@ describe('bewerteStunde – Kühlungshinweis bei geschlossenen Fenstern', () => 
     expect(arten(empfehlung)).not.toContain('kuehlung');
   });
 
-  it('schweigt zwischen Wunschtemperatur und 26 Grad – dort zieht es nur', () => {
+  it('schweigt zwischen Wunschtemperatur und 26 Grad, dort zieht es nur', () => {
     // 25 Grad liegt über der Wunschtemperatur von 24, aber unter der Schwelle,
     // ab der EN 16798-1 erhöhte Luftgeschwindigkeiten überhaupt zulässt.
     const empfehlung = bewerteStunde({
@@ -310,12 +376,12 @@ describe('bewerteStunde – Kühlungshinweis bei geschlossenen Fenstern', () => 
     expect(arten(empfehlung)).not.toContain('kuehlung');
   });
 
-  it('schweigt im leeren Raum – der Hinweis richtet sich an Menschen', () => {
+  it('schweigt im leeren Raum, der Hinweis richtet sich an Menschen', () => {
     expect(arten(bewerteStunde({ ...hitze, raumBelegt: false }))).not.toContain('kuehlung');
   });
 
   it('sagt dazu, dass der Ventilator im leeren Raum nur heizt', () => {
-    // Er wandelt seine ganze Leistung in Wärme – das gehört zur ehrlichen
+    // Er wandelt seine ganze Leistung in Wärme, das gehört zur ehrlichen
     // Darstellung, auch wenn es gegen die gefühlte Abkühlung wenig wiegt.
     const empfehlung = bewerteStunde({ ...hitze, raumBelegt: true });
 
@@ -351,7 +417,7 @@ describe('bewerteStunde – Kühlungshinweis bei geschlossenen Fenstern', () => 
   });
 });
 
-describe('bewerteStunde – Feuchte- und Windhinweise beim Öffnen', () => {
+describe('bewerteStunde: Feuchte- und Windhinweise beim Öffnen', () => {
   const einstellungen = testEinstellungen({ hystereseK: kelvin(2) });
   const lueften = {
     aussentemperaturC: celsius(20),
@@ -369,7 +435,7 @@ describe('bewerteStunde – Feuchte- und Windhinweise beim Öffnen', () => {
       taupunktAussenC: celsius(20.5),
     });
 
-    // Der Entscheid bleibt «öffnen» – der Hinweis schränkt nur ein.
+    // Der Entscheid bleibt «öffnen», der Hinweis schränkt nur ein.
     expect(empfehlung.status).toBe('oeffnen');
     expect(arten(empfehlung)).toContain('feuchte');
     expect(empfehlung.zusatzhinweise[0]?.text).toContain('kurz und kräftig');
@@ -435,10 +501,10 @@ describe('bewerteStunde – Feuchte- und Windhinweise beim Öffnen', () => {
  * Warnungen vor Sturm- und Wasserschaden.
  *
  * Sie sollen aufmerksam machen, nicht bevormunden: Die Empfehlung bleibt in
- * jedem Fall unverändert – Regenluft kühlt gut, und ob das Fenster trotzdem
+ * jedem Fall unverändert: Regenluft kühlt gut, und ob das Fenster trotzdem
  * offen bleibt, entscheidet der Mensch davor.
  */
-describe('bewerteStunde – Warnungen bei offenem Fenster', () => {
+describe('bewerteStunde: Warnungen bei offenem Fenster', () => {
   const lueften = {
     aussentemperaturC: celsius(20),
     raumtemperaturC: celsius(27),
@@ -480,7 +546,7 @@ describe('bewerteStunde – Warnungen bei offenem Fenster', () => {
   });
 
   it('warnt vor Gewitter, auch wenn noch kein Regen fällt', () => {
-    // Gewitter setzen binnen Minuten ein – die Vorwarnung ist der Sinn der Sache.
+    // Gewitter setzen binnen Minuten ein, die Vorwarnung ist der Sinn der Sache.
     const empfehlung = bewerteStunde({ ...lueften, wettercode: 95 });
     expect(empfehlung.zusatzhinweise[0]?.kuerzel).toBe('Gewitter');
   });
@@ -498,7 +564,7 @@ describe('bewerteStunde – Warnungen bei offenem Fenster', () => {
   });
 
   it('stellt die Warnung vor die Komforthinweise', () => {
-    // Die Empfehlungskarte zeigt nur zwei Hinweise – die Warnung darf nicht
+    // Die Empfehlungskarte zeigt nur zwei Hinweise, die Warnung darf nicht
     // hinter «schwül» herausfallen.
     const empfehlung = bewerteStunde({
       ...lueften,
@@ -521,7 +587,7 @@ describe('bewerteStunde – Warnungen bei offenem Fenster', () => {
     expect(arten(empfehlung)).not.toContain('wind');
   });
 
-  it('lässt die Empfehlung unverändert – gewarnt wird, nicht entschieden', () => {
+  it('lässt die Empfehlung unverändert, gewarnt wird, nicht entschieden', () => {
     const ruhig = bewerteStunde(lueften);
     const stuermisch = bewerteStunde({
       ...lueften,

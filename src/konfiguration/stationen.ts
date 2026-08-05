@@ -7,7 +7,7 @@ import type { Wetterstation } from '../typen.ts';
  * Messstandorten. Open-Meteo interpoliert das Wettermodell auf diese Koordinaten,
  * eine Stationskennung wird nicht benötigt.
  *
- * Erweiterbar: einfach einen weiteren Eintrag ergänzen – die Standortauswahl
+ * Erweiterbar: einfach einen weiteren Eintrag ergänzen, die Standortauswahl
  * im UI wird automatisch daraus aufgebaut.
  */
 export const STATIONEN: readonly Wetterstation[] = [

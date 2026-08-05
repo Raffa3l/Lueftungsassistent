@@ -54,7 +54,7 @@ describe('glatterPfad', () => {
   });
 
   it('bleibt zwischen zwei Stützpunkten in deren Wertebereich', () => {
-    // Ein steiler Abfall gefolgt von einer Gegenbewegung – hier schwingt eine
+    // Ein steiler Abfall gefolgt von einer Gegenbewegung, hier schwingt eine
     // gewöhnliche Spline unter den tiefsten Messwert.
     const punkte: Punkt[] = [[0, 100], [10, 100], [20, 20], [30, 25], [40, 24]];
 
@@ -67,7 +67,7 @@ describe('glatterPfad', () => {
   it('überschwingt an einem lokalen Tiefpunkt nicht', () => {
     // Bewusst unsymmetrisch: Bei gleich steilen Flanken mittelt sich die
     // Steigung von selbst zu null, der Test liefe dann ins Leere. Hier fällt
-    // die Kurve steil und steigt flach – ohne Begrenzung zöge das Mittel sie
+    // die Kurve steil und steigt flach, ohne Begrenzung zöge das Mittel sie
     // über den Scheitel hinaus unter den Stützwert 20.
     const punkte: Punkt[] = [[0, 60], [10, 20], [20, 25], [30, 40]];
     const tiefster = Math.min(...kurvenpunkte(punkte).map(([, y]) => y));

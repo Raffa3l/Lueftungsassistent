@@ -1,15 +1,15 @@
 /**
- * Weiche Kurve durch Messpunkte – monotone kubische Interpolation.
+ * Weiche Kurve durch Messpunkte, monotone kubische Interpolation.
  *
  * Warum überhaupt glätten?
  * Die Wetterdaten sind Stundenwerte. Verbindet man sie mit Geraden, bekommt die
- * Kurve an jeder vollen Stunde einen Knick – die Aussentemperatur sieht dann aus,
+ * Kurve an jeder vollen Stunde einen Knick, die Aussentemperatur sieht dann aus,
  * als spränge sie. Sie tut es nicht: Luft hat Trägheit, der Verlauf zwischen zwei
  * Stützstellen ist weich. Die Ecken sind ein Artefakt der Abtastung, nicht der
  * Wetterlage.
  *
  * Warum ausgerechnet monoton (nach Fritsch–Carlson)?
- * Die naheliegende Glättung – Catmull-Rom oder ein gewöhnlicher kubischer Spline –
+ * Die naheliegende Glättung, Catmull-Rom oder ein gewöhnlicher kubischer Spline,
  * schwingt an scharfen Knicken über: Nach einem steilen Abfall taucht die Kurve
  * unter den tiefsten Messwert und zeichnet eine Temperatur, die nirgends steht.
  * In einer App, die Temperaturschwellen anzeigt, wäre das schlimmer als die Ecke.
@@ -27,7 +27,7 @@ export type Punkt = readonly [number, number];
 /**
  * Baut aus Stützpunkten einen SVG-Pfad mit kubischen Bézier-Segmenten.
  *
- * Erwartet nach x aufsteigend sortierte Punkte – im Diagramm ist x die Zeit,
+ * Erwartet nach x aufsteigend sortierte Punkte, im Diagramm ist x die Zeit,
  * also von sich aus geordnet.
  */
 export function glatterPfad(punkte: readonly Punkt[]): string {

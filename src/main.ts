@@ -96,7 +96,7 @@ document.addEventListener('visibilitychange', () => {
 /*
  * Einstellungen fürs Papier aufklappen und danach zurückstellen.
  *
- * Auf dem Ausdruck erklären sie, wofür gerechnet wurde – eingeklappt fehlte
+ * Auf dem Ausdruck erklären sie, wofür gerechnet wurde, eingeklappt fehlte
  * genau diese Angabe. Das lässt sich nicht in CSS lösen: Ein geschlossenes
  * `details` blendet seinen Inhalt browserintern aus, nicht über eine Regel, die
  * sich im Druckkontext überschreiben liesse.
@@ -143,7 +143,7 @@ function zeichne(): void {
   if (!station || !gebaeude || !raum || zustand.wetter.length === 0) return;
 
   // Ausrichtung und Sonnenschutz gehen als «Solarlage» ins Modell. Beides ändert
-  // sich ohne Netzabruf – der Sonnenstand wird lokal gerechnet.
+  // sich ohne Netzabruf, der Sonnenstand wird lokal gerechnet.
   const ausrichtung =
     findeAusrichtung(zustand.einstellungen.ausrichtungId) ??
     findeAusrichtung(STANDARD_EINSTELLUNGEN.ausrichtungId)!;
@@ -180,14 +180,14 @@ function zeichne(): void {
   rendereStundentabelle(tabellenBehaelter, stunden, jetztIndex);
   aktualisiereSeitentitel(stunden, jetztIndex, station.name);
 
-  // Der Vorschlag hängt am Wetter der Vortage, nicht an den Einstellungen –
+  // Der Vorschlag hängt am Wetter der Vortage, nicht an den Einstellungen,
   // er wird deshalb aus den Rohdaten gerechnet, nicht aus der Simulation.
   einstellungenSteuerung.zeigeTemperaturvorschlag(
     jetztZeit ? vorgeschlageneZieltemperaturC(zustand.wetter, jetztZeit) : undefined,
   );
 }
 
-/** Der Seitentitel zeigt die Empfehlung – sichtbar schon im Browser-Tab. */
+/** Der Seitentitel zeigt die Empfehlung, sichtbar schon im Browser-Tab. */
 function aktualisiereSeitentitel(
   stunden: readonly SimulationsStunde[],
   jetztIndex: number,
@@ -195,7 +195,7 @@ function aktualisiereSeitentitel(
 ): void {
   const jetzt = stunden[jetztIndex];
   if (!jetzt) return;
-  document.title = `${jetzt.empfehlung.titel} – ${ort} · Lüftungsassistent`;
+  document.title = `${jetzt.empfehlung.titel} · ${ort} · Lüftungsassistent`;
 }
 
 function zeigeFehler(fehler: unknown): void {
@@ -208,7 +208,7 @@ function zeigeFehler(fehler: unknown): void {
   if (zustand.wetter.length === 0) {
     leere(empfehlungInhalt);
     empfehlungInhalt.append(el('p', { class: 'platzhalter' }, [text]));
-    // Ohne Daten wird nie gezeichnet – die Platzhalter stünden sonst dauerhaft
+    // Ohne Daten wird nie gezeichnet, die Platzhalter stünden sonst dauerhaft
     // da und behaupteten, es werde noch geladen.
     entferneSkelette();
   }

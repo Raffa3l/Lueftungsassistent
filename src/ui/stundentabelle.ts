@@ -14,8 +14,8 @@ import { symbolFuerHinweis, symbolFuerStatus } from './symbole.ts';
  * nicht sehen oder Farben nicht unterscheiden kann, findet hier alle Werte.
  *
  * Zwei Gliederungen laufen mit: eine Zwischenzeile bei jedem Tageswechsel
- * (sonst folgt auf «23:00» ein «00:00» ohne Hinweis, dass ein neuer Tag – und
- * womöglich ein anderer Wochentag mit anderer Belegung – begonnen hat) und eine
+ * (sonst folgt auf «23:00» ein «00:00» ohne Hinweis, dass ein neuer Tag, und
+ * womöglich ein anderer Wochentag mit anderer Belegung, begonnen hat) und eine
  * kräftigere Linie dort, wo die Empfehlung umschlägt. Genau diese Zeilen sucht,
  * wer die Tabelle überfliegt.
  */
@@ -87,14 +87,14 @@ function statusMarke(stunde: SimulationsStunde): HTMLElement {
     [symbolFuerStatus(stunde.empfehlung.status), offen ? 'öffnen' : 'schliessen'],
   );
 
-  // In der schmalen Tabelle ist nur für den wichtigsten Hinweis Platz – die
+  // In der schmalen Tabelle ist nur für den wichtigsten Hinweis Platz, die
   // Rangfolge hat ihn nach vorn sortiert. Die ausführlichen Texte aller
   // Hinweise stehen im Tooltip und in der Empfehlungskarte.
   const hinweise = stunde.empfehlung.zusatzhinweise;
   const wichtigster = hinweise[0];
   if (!wichtigster) return marke;
 
-  // Warnungen vor Schaden heben sich ab – sonst stünde «Sturm» so beiläufig da
+  // Warnungen vor Schaden heben sich ab, sonst stünde «Sturm» so beiläufig da
   // wie «Ventilator». Die Bedeutung trägt weiterhin Symbol plus Text.
   const warnung = wichtigster.art === 'wetterschutz';
 

@@ -8,7 +8,7 @@ import {
 } from './sonnenstand.ts';
 import { wattProM2 } from '../einheiten.ts';
 
-/** Zürich – Referenzstandort für alle Sonnenstandstests. */
+/** Zürich: Referenzstandort für alle Sonnenstandstests. */
 const ZUERICH = { breite: 47.37, laenge: 8.54 };
 
 describe('istSommerzeit', () => {
@@ -147,7 +147,7 @@ describe('fassadenstrahlungWProM2', () => {
   });
 
   it('ordnet die Himmelsrichtungen über den Tag richtig ein', () => {
-    // Morgens gewinnt Ost, abends West – bei gleicher Sonnenhöhe.
+    // Morgens gewinnt Ost, abends West, bei gleicher Sonnenhöhe.
     const morgens = { elevationGrad: 25, azimutGrad: 90 };
     const abends = { elevationGrad: 25, azimutGrad: 270 };
 

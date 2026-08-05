@@ -62,7 +62,7 @@ export const MONTAG = 3; // 3. August 2026
  *
  * Der Taupunkt von 5 °C liegt unter jeder Schwüle- und Kondensationsschwelle.
  * Der Wind entspricht dem Referenzwind des Modells, bei dem die konfigurierten
- * Zeitkonstanten unverändert gelten – so prüfen Modelltests das thermische
+ * Zeitkonstanten unverändert gelten, so prüfen Modelltests das thermische
  * Verhalten und nicht nebenbei die Windkorrektur. Tests zu Feuchte und Wind
  * setzen die Werte ausdrücklich.
  */
@@ -72,7 +72,7 @@ const REFERENZ_WIND_M_PRO_S = 2;
 /**
  * Ruhiges Wetter als Ausgangslage: keine Böen über der Warnschwelle, kein
  * Niederschlag, kein Gewitter. Tests zu den Warnhinweisen setzen die Werte
- * ausdrücklich – so bleibt sichtbar, welcher Wert die Warnung auslöst.
+ * ausdrücklich, so bleibt sichtbar, welcher Wert die Warnung auslöst.
  */
 const RUHIGE_BOEE_M_PRO_S = 3;
 const WMO_KLAR = 0;

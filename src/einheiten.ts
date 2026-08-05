@@ -2,12 +2,12 @@
  * Physikalische Einheiten als Typen («Branded Types»).
  *
  * Das Problem: Im thermischen Modell treffen Zahlen mit sehr unterschiedlicher
- * Bedeutung aufeinander – Temperaturen, Temperaturdifferenzen, Flächenlasten,
+ * Bedeutung aufeinander: Temperaturen, Temperaturdifferenzen, Flächenlasten,
  * Änderungsraten. Alle sind `number`, und der Compiler sieht keinen Unterschied.
  * Beim Umbau auf Raumtypen war genau das die riskanteste Stelle.
  *
  * Die Lösung: Jede Grösse bekommt eine Marke, die nur im Typsystem existiert.
- * Zur Laufzeit bleibt es eine gewöhnliche Zahl – die Konstruktoren unten geben
+ * Zur Laufzeit bleibt es eine gewöhnliche Zahl, die Konstruktoren unten geben
  * ihr Argument unverändert zurück.
  *
  * Wichtig zu wissen, was das leistet und was nicht:
@@ -15,11 +15,11 @@
  *   ✓ `const t: Celsius = last` schlägt fehl
  *   ✓ `waermeeintragKProH(...)` kann keine Flächenlast zurückgeben
  *   ✓ eine Funktion, die `WattProM2` erwartet, nimmt keine `Stunden` entgegen
- *   ✗ `celsiusWert + wattWert` bleibt erlaubt – TypeScript rechnet mit
+ *   ✗ `celsiusWert + wattWert` bleibt erlaubt: TypeScript rechnet mit
  *     Zahlen-Untertypen weiter und liefert ein blankes `number`
  *
  * Der Schutz greift also an den Grenzen: Sobald das Ergebnis irgendwo landet,
- * das eine Einheit verlangt – Rückgabewert, Feld, Parameter –, fällt der Fehler
+ * das eine Einheit verlangt: Rückgabewert, Feld, Parameter, fällt der Fehler
  * auf. Für die Rechnungen dazwischen gibt es die Helfer am Ende dieser Datei;
  * wer sie verwendet, kann die Einheiten gar nicht erst verwechseln.
  */
@@ -34,7 +34,7 @@ interface Markiert<Name extends string> {
 /** Temperatur in Grad Celsius. */
 export type Celsius = number & Markiert<'°C'>;
 
-/** Temperaturdifferenz in Kelvin – bewusst getrennt von der Temperatur selbst. */
+/** Temperaturdifferenz in Kelvin, bewusst getrennt von der Temperatur selbst. */
 export type Kelvin = number & Markiert<'K'>;
 
 /** Temperaturänderung pro Stunde. */
@@ -51,7 +51,7 @@ export type Stunden = number & Markiert<'h'>;
 
 /**
  * Absolute Luftfeuchte: Gramm Wasser je Kilogramm trockener Luft.
- * Sie bleibt beim Erwärmen und Abkühlen erhalten – anders als die relative
+ * Sie bleibt beim Erwärmen und Abkühlen erhalten, anders als die relative
  * Feuchte, die deshalb für Lüftungsentscheide untauglich ist.
  */
 export type GrammProKg = number & Markiert<'g/kg'>;
@@ -60,13 +60,13 @@ export type GrammProKg = number & Markiert<'g/kg'>;
 export type MeterProSekunde = number & Markiert<'m/s'>;
 
 /**
- * Niederschlag als Höhe je Stunde – die übliche Angabe: 1 mm entspricht einem
+ * Niederschlag als Höhe je Stunde, die übliche Angabe: 1 mm entspricht einem
  * Liter je Quadratmeter. Regen und geschmolzener Schnee sind darin enthalten.
  */
 export type MillimeterProStunde = number & Markiert<'mm/h'>;
 
 /* ------------------------------------------------------------------ *
- * Konstruktoren – zur Laufzeit ohne Wirkung, im Typsystem der Übergang
+ * Konstruktoren, zur Laufzeit ohne Wirkung, im Typsystem der Übergang
  * von einer blanken Zahl zu einer Grösse mit Einheit.
  * ------------------------------------------------------------------ */
 
@@ -93,7 +93,7 @@ export function temperaturPlus(basis: Celsius, aenderung: Kelvin): Celsius {
   return celsius(basis + aenderung);
 }
 
-/** Zwei Temperaturen ergeben eine Differenz – positiv, wenn `a` wärmer ist. */
+/** Zwei Temperaturen ergeben eine Differenz, positiv, wenn `a` wärmer ist. */
 export function temperaturDifferenz(a: Celsius, b: Celsius): Kelvin {
   return kelvin(a - b);
 }
@@ -126,7 +126,7 @@ export function skaliereLast(last: WattProM2, faktor: number): WattProM2 {
   return wattProM2(last * faktor);
 }
 
-/** Verhältnis zweier gleichartiger Lasten – dimensionslos, daher blankes `number`. */
+/** Verhältnis zweier gleichartiger Lasten, dimensionslos, daher blankes `number`. */
 export function anteil(wert: WattProM2, referenz: WattProM2): number {
   return wert / referenz;
 }

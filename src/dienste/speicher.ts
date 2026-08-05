@@ -16,7 +16,7 @@ import { findeSonnenschutz } from '../konfiguration/sonnenschutz.ts';
  *
  * Konvention: Im LocalStorage liegen ausschliesslich unkritische
  * Komforteinstellungen. Keine Zugangsdaten, keine personenbezogenen Daten,
- * keine Tokens – der Speicher ist für jedes Skript der Seite lesbar.
+ * keine Tokens, der Speicher ist für jedes Skript der Seite lesbar.
  *
  * Der Schlüssel ist versioniert. Ändert sich das Format unverträglich, wird
  * ein neuer Schlüssel (…v2) eingeführt statt alte Daten zu migrieren.
@@ -25,7 +25,7 @@ const SPEICHER_SCHLUESSEL = 'lueftungsassistent.einstellungen.v1';
 
 /**
  * Lädt die Einstellungen. Fehlende, unbekannte oder unplausible Werte werden
- * einzeln durch den Standardwert ersetzt – die App startet also immer.
+ * einzeln durch den Standardwert ersetzt, die App startet also immer.
  */
 export function ladeEinstellungen(): Einstellungen {
   const roh = leseRohdaten();
@@ -35,7 +35,7 @@ export function ladeEinstellungen(): Einstellungen {
     stationId: gueltigeStationId(roh['stationId']),
     gebaeudetypId: gueltigeGebaeudetypId(roh['gebaeudetypId']),
     raumtypId: gueltigeRaumtypId(roh['raumtypId']),
-    // Aus dem LocalStorage kommen blanke Zahlen – hier bekommen sie ihre Einheit.
+    // Aus dem LocalStorage kommen blanke Zahlen, hier bekommen sie ihre Einheit.
     zielTemperaturC: celsius(
       gueltigeZahl(
         roh['zielTemperaturC'],
@@ -69,7 +69,7 @@ export function ladeEinstellungen(): Einstellungen {
 
 /**
  * Prüft die Ferienliste Eintrag für Eintrag. Unbrauchbare Einträge werden
- * verworfen statt die ganze Liste – ein Tippfehler in einem Zeitraum soll nicht
+ * verworfen statt die ganze Liste, ein Tippfehler in einem Zeitraum soll nicht
  * alle anderen kosten.
  */
 function gueltigeFerien(wert: unknown): Ferienzeitraum[] {
@@ -153,7 +153,7 @@ function leseRohdaten(): Record<string, unknown> | undefined {
     if (typeof geparst !== 'object' || geparst === null) return undefined;
     return geparst as Record<string, unknown>;
   } catch {
-    return undefined; // beschädigter Eintrag – wird beim nächsten Speichern überschrieben
+    return undefined; // beschädigter Eintrag, wird beim nächsten Speichern überschrieben
   }
 }
 

@@ -1,6 +1,6 @@
 import type { Celsius, Kelvin } from '../einheiten.ts';
 
-/** Formatierungshelfer – Schweizer Konventionen (Dezimalpunkt, 24-Stunden-Zeit). */
+/** Formatierungshelfer: Schweizer Konventionen (Dezimalpunkt, 24-Stunden-Zeit). */
 
 const ZAHL_1_STELLE = new Intl.NumberFormat('de-CH', {
   minimumFractionDigits: 1,
@@ -38,7 +38,7 @@ export function formatiereZeitpunkt(zeit: Date, referenz: Date = new Date()): st
  * Tagesüberschrift für die Stundentabelle: «Heute, Dienstag 4. August».
  *
  * Der Wochentag steht mit dabei, weil Belegung und Empfehlung vom Wochentag
- * abhängen – «Mittwoch» erklärt eine Zeile, die ein blosses Datum nicht erklärt.
+ * abhängen: «Mittwoch» erklärt eine Zeile, die ein blosses Datum nicht erklärt.
  */
 export function formatiereTagesueberschrift(zeit: Date, referenz: Date = new Date()): string {
   // Wochentag und Datum getrennt geholt: `weekday` zusammen mit `day`/`month`

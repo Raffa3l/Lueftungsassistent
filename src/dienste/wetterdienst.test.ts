@@ -10,7 +10,7 @@ import type { Wetterstation } from '../typen.ts';
 
 /**
  * Der Abruf selbst wird gegen einen Attrappen-`fetch` geprüft: Welche Parameter
- * die App anfordert, entscheidet über die Zahlen, mit denen sie rechnet – und
+ * die App anfordert, entscheidet über die Zahlen, mit denen sie rechnet, und
  * war bis dahin nirgends festgehalten.
  */
 describe('ladeWetterdaten', () => {
@@ -42,7 +42,7 @@ describe('ladeWetterdaten', () => {
   }
 
   it('fordert das Modell von MeteoSchweiz an', async () => {
-    // Ohne diesen Parameter liefert Open-Meteo «best match» – für die Schweiz
+    // Ohne diesen Parameter liefert Open-Meteo «best match», für die Schweiz
     // ist das ICON-D2 des DWD statt des feiner aufgelösten Schweizer Modells.
     expect((await abgerufeneUrl()).searchParams.get('models')).toBe('meteoswiss_icon_seamless');
   });
@@ -57,7 +57,7 @@ describe('ladeWetterdaten', () => {
 
     expect(url.searchParams.get('latitude')).toBe('47.3769');
     expect(url.searchParams.get('longitude')).toBe('8.5417');
-    // Die Höhe verbessert die Temperaturkorrektur – ohne sie rechnet Davos falsch.
+    // Die Höhe verbessert die Temperaturkorrektur, ohne sie rechnet Davos falsch.
     expect(url.searchParams.get('elevation')).toBe('408');
     expect(url.searchParams.get('timezone')).toBe('Europe/Zurich');
   });
@@ -89,7 +89,7 @@ describe('ladeWetterdaten', () => {
   });
 
   it('fordert den Wind in Meter pro Sekunde an', async () => {
-    // Voreinstellung wäre km/h – die Zahlen kämen dann 3.6-fach zu gross an.
+    // Voreinstellung wäre km/h, die Zahlen kämen dann 3.6-fach zu gross an.
     expect((await abgerufeneUrl()).searchParams.get('wind_speed_unit')).toBe('ms');
   });
 });

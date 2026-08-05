@@ -12,7 +12,7 @@ import { celsius } from '../einheiten.ts';
 describe('saettigungsdampfdruckHPa', () => {
   it('trifft die bekannten Stützstellen', () => {
     // Tabellenwerte über Wasser: 6.11 hPa bei 0 °C, 23.39 bei 20 °C, 42.47 bei 30 °C.
-    // Die Magnus-Näherung weicht davon um wenige Zehntelprozent ab – für die
+    // Die Magnus-Näherung weicht davon um wenige Zehntelprozent ab, für die
     // Lüftungsbewertung um Grössenordnungen genauer als die Wetterprognose.
     expect(saettigungsdampfdruckHPa(celsius(0))).toBeCloseTo(6.11, 1);
     expect(saettigungsdampfdruckHPa(celsius(20))).toBeCloseTo(23.39, 0);
@@ -104,7 +104,7 @@ describe('drohtKondensation', () => {
   });
 
   it('warnt schon knapp unterhalb der Raumtemperatur', () => {
-    // Wände und Böden sind kühler als die Raumluft – daher der Sicherheitsabstand.
+    // Wände und Böden sind kühler als die Raumluft, daher der Sicherheitsabstand.
     expect(drohtKondensation(celsius(20.5), celsius(21))).toBe(true);
     expect(drohtKondensation(celsius(19.5), celsius(21))).toBe(false);
   });

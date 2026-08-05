@@ -1,9 +1,9 @@
 {
   "name": "lueftungsassistent",
   "private": true,
-  "version": "1.7.1",
+  "version": "1.9.1",
   "type": "module",
-  "description": "Lüftungsassistent – zeigt, wann im Sommer die Fenster geschlossen bleiben sollten",
+  "description": "Lüftungsassistent: zeigt, wann im Sommer die Fenster geschlossen bleiben sollten",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

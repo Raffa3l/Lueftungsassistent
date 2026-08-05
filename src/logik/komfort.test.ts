@@ -40,7 +40,7 @@ describe('gleitendesAussenmittelC', () => {
   });
 
   it('lässt den laufenden Tag aussen vor', () => {
-    // Sechs kühle Vortage, der Bezugstag selbst ist heiss – er darf nicht zählen.
+    // Sechs kühle Vortage, der Bezugstag selbst ist heiss, er darf nicht zählen.
     const wetter = [...tage([15, 15, 15, 15, 15, 15]), ...tage([35], SAMSTAG + 6)];
 
     expect(gleitendesAussenmittelC(wetter, bezugstag(6))).toBeCloseTo(15, 5);
@@ -53,7 +53,7 @@ describe('gleitendesAussenmittelC', () => {
 
   it('übergeht angebrochene Tage', () => {
     // Ein Tag mit nur zwölf Stunden zählt nicht als vollständig; danach bleiben
-    // zwei Tage übrig – zu wenige für ein Mittel.
+    // zwei Tage übrig, zu wenige für ein Mittel.
     const wetter = [
       ...erzeugeWetterstunden(Array.from({ length: 12 }, () => 25), 0, 0, SAMSTAG),
       ...tage([20, 20], SAMSTAG + 1),
@@ -71,7 +71,7 @@ describe('behaglichkeitstemperaturC', () => {
     expect(behaglichkeitstemperaturC(celsius(15))).toBeCloseTo(23.75, 2);
   });
 
-  it('steigt mit dem Aussenmittel – darin liegt der ganze Zweck', () => {
+  it('steigt mit dem Aussenmittel, darin liegt der ganze Zweck', () => {
     const nachKuehlerWoche = behaglichkeitstemperaturC(celsius(14))!;
     const nachHitzewoche = behaglichkeitstemperaturC(celsius(24))!;
 
@@ -79,7 +79,7 @@ describe('behaglichkeitstemperaturC', () => {
   });
 
   it('deckelt den Wert bei anhaltender Extremhitze', () => {
-    // Die Gerade allein ergäbe über 28 °C – das beschreibt, was Menschen
+    // Die Gerade allein ergäbe über 28 °C, das beschreibt, was Menschen
     // tolerieren, nicht was als Zielwert taugt (SIA 180).
     expect(behaglichkeitstemperaturC(celsius(29))).toBe(26.5);
     expect(behaglichkeitstemperaturC(celsius(24))).toBe(26.5);

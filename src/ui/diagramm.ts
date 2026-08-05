@@ -13,7 +13,7 @@ import { INFO } from './infotexte.ts';
  *
  * Gestaltungsentscheide:
  *  - Zwei Serien in Blau und Orange (auf Farbfehlsichtigkeit geprüft), zusätzlich
- *    direkt beschriftet und in der Legende erklärt – die Zuordnung hängt nie
+ *    direkt beschriftet und in der Legende erklärt, die Zuordnung hängt nie
  *    allein an der Farbe. Die Tabelle darunter ist die textliche Entsprechung.
  *  - Das Vergleichsszenario «ohne Lüften» ist bewusst keine dritte Buntfarbe,
  *    sondern eine gestrichelte graue Linie: es ist Kontext, keine Hauptaussage.
@@ -42,7 +42,7 @@ export class Temperaturdiagramm {
   constructor(private readonly behaelter: HTMLElement) {
     // Bewusst ohne `leere`: Im Behälter steht ein Platzhalter, der die Höhe des
     // Diagramms freihält, bis die Wetterdaten eintreffen. Er verschwindet erst,
-    // wenn tatsächlich gezeichnet wird – sonst fiele die Karte in sich zusammen
+    // wenn tatsächlich gezeichnet wird, sonst fiele die Karte in sich zusammen
     // und die Seite spränge doppelt.
     this.flaeche = el('div');
     this.hinweisfeld = el('div', { class: 'diagramm__hinweisfeld', 'data-sichtbar': 'false' });
@@ -139,7 +139,7 @@ export class Temperaturdiagramm {
     ]);
     svg.append(fadenkreuz);
 
-    // Jetzt steht etwas Richtiges da – der Platzhalter hat seine Aufgabe erfüllt.
+    // Jetzt steht etwas Richtiges da, der Platzhalter hat seine Aufgabe erfüllt.
     this.behaelter.querySelector('.skelett')?.remove();
     leere(this.flaeche);
     this.flaeche.append(svg);
@@ -200,7 +200,7 @@ export class Temperaturdiagramm {
       ]),
     );
 
-    // Die Warnung nennt der Streifen im Diagramm nur als Farbe – hier steht,
+    // Die Warnung nennt der Streifen im Diagramm nur als Farbe, hier steht,
     // wovor gewarnt wird.
     const warnung = stunde.empfehlung.zusatzhinweise.find((h) => h.art === 'wetterschutz');
     if (warnung) {
@@ -279,7 +279,7 @@ function lueftungsfenster(
  * Warnstreifen am Fuss der Zeichenfläche: Stunden mit drohendem Sturm- oder
  * Wasserschaden.
  *
- * Bewusst ein schmales Band unten und keine Einfärbung der ganzen Spalte – die
+ * Bewusst ein schmales Band unten und keine Einfärbung der ganzen Spalte, die
  * grüne Fläche zeigt bereits, wann Lüften sich lohnt, und beides übereinander
  * ergäbe eine Farbmischung, die keine der beiden Aussagen mehr trägt. Der
  * Streifen liegt dort, wo die Warnung hingehört: unter den Stunden, für die
@@ -355,7 +355,7 @@ function rasterlinien(
           'text-anchor': 'end',
           style: 'fill: var(--schrift-gedaempft); font-size: 11px',
         },
-        // Die Einheit steht einmal am obersten Wert – an jeder Marke wiederholt
+        // Die Einheit steht einmal am obersten Wert, an jeder Marke wiederholt
         // wäre sie Lärm, ganz ohne sie bliebe die Achse eine nackte Zahlenreihe.
         [wert === oberster ? `${wert} °C` : String(wert)],
       ),
@@ -440,8 +440,8 @@ function jetztMarkierung(px: number, hoehe: number): SVGElement {
 /**
  * Datenreihe als weiche Kurve.
  *
- * Statt einer Polylinie aus Stundenwerten – die an jeder vollen Stunde einen
- * Knick bekäme – ein Pfad mit monotoner Interpolation (siehe `kurve.ts`). Die
+ * Statt einer Polylinie aus Stundenwerten, die an jeder vollen Stunde einen
+ * Knick bekäme, ein Pfad mit monotoner Interpolation (siehe `kurve.ts`). Die
  * Stützpunkte bleiben exakt getroffen, weich wird nur die Strecke dazwischen.
  */
 function linie(

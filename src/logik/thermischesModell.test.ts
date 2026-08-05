@@ -111,7 +111,7 @@ describe('naechsteRaumtemperatur', () => {
   });
 });
 
-describe('solarlastWProM2 – Ausrichtung und Sonnenschutz', () => {
+describe('solarlastWProM2: Ausrichtung und Sonnenschutz', () => {
   // Sonniges Gebäude ohne Dachanteil: der Eintrag hängt allein am Fenster.
   const gebaeude = {
     ...TEST_GEBAEUDE,
@@ -120,7 +120,7 @@ describe('solarlastWProM2 – Ausrichtung und Sonnenschutz', () => {
   };
   const ZUERICH = { breitengrad: 47.37, laengengrad: 8.54 };
 
-  /** Klarer Augustnachmittag um 17 Uhr – die Sonne steht im Westen. */
+  /** Klarer Augustnachmittag um 17 Uhr, die Sonne steht im Westen. */
   const [nachmittag] = erzeugeWetterstunden([30], 17, 500, MONTAG, {
     direktstrahlungNormalWProM2: wattProM2(750),
     diffusstrahlungWProM2: wattProM2(120),
@@ -155,7 +155,7 @@ describe('solarlastWProM2 – Ausrichtung und Sonnenschutz', () => {
 
     expect(innen).toBeLessThan(ohne);
     expect(aussen).toBeLessThan(innen);
-    // Faktor vier zwischen «nichts» und «aussen» – der stärkste Hebel.
+    // Faktor vier zwischen «nichts» und «aussen», der stärkste Hebel.
     expect(ohne / aussen).toBeCloseTo(4, 0);
   });
 
@@ -325,7 +325,7 @@ describe('simuliere', () => {
   });
 
   it('hält den Raum in der Hitzeperiode kühler als das Szenario ohne Lüften', () => {
-    // Hochsommer: heisse Tage, aber kühle Nächte – der klassische Anwendungsfall
+    // Hochsommer: heisse Tage, aber kühle Nächte, der klassische Anwendungsfall
     const wetter = erzeugeTagesgang(3, 24, 8);
     const { stunden } = simuliere(wetter, TEST_GEBAEUDE, TEST_RAUM, einstellungen, celsius(26));
     const letzte = stunden.at(-1)!;
@@ -360,6 +360,61 @@ describe('simuliere', () => {
     for (const stunde of zuKalt) {
       expect(stunde.empfehlung.status).toBe('schliessen');
     }
+  });
+
+  /*
+   * Vorausschau vor der Nacht.
+   *
+   * Wer abends öffnet, entscheidet für die ganze Nacht, nachjustieren kann
+   * niemand. Führt Durchlüften unter die Untergrenze, rät die App deshalb gar
+   * nicht erst zum Öffnen, statt mitten in der Nacht auf «schliessen» zu
+   * wechseln.
+   */
+  it('öffnet abends nicht, wenn die Nacht unter die Untergrenze führen würde', () => {
+    // Kalte Bergnacht: 10 °C aussen ab 21 Uhr, Raum startet bei 26 °C.
+    const wetter = erzeugeWetterstunden(Array.from({ length: 10 }, () => 10), 21);
+    const { stunden } = simuliere(wetter, TEST_GEBAEUDE, TEST_RAUM, einstellungen, celsius(26));
+
+    const nachts = stunden.filter((stunde) => {
+      const h = stunde.zeit.getHours();
+      return h >= 22 || h < 7;
+    });
+
+    expect(nachts.every((stunde) => stunde.empfehlung.status === 'schliessen')).toBe(true);
+    expect(stunden[0]?.empfehlung.begruendung).toContain('auskühlen');
+  });
+
+  it('öffnet in einer milden Nacht wie bisher', () => {
+    // 19 °C aussen: kühl genug zum Lüften, aber nicht bis unter die Untergrenze.
+    const wetter = erzeugeWetterstunden(Array.from({ length: 10 }, () => 19), 21);
+    const { stunden } = simuliere(wetter, TEST_GEBAEUDE, TEST_RAUM, einstellungen, celsius(26));
+
+    expect(stunden.some((stunde) => stunde.empfehlung.status === 'oeffnen')).toBe(true);
+  });
+
+  it('wechselt nachts nicht mehr von offen auf zu', () => {
+    // Der gemeldete Fall: ein Wechsel um vier Uhr morgens ist keine
+    // Handlungsanweisung, sondern nur eine Zahl in einer Tabelle.
+    const wetter = erzeugeWetterstunden(Array.from({ length: 12 }, () => 12), 20);
+    const { stunden } = simuliere(wetter, TEST_GEBAEUDE, TEST_RAUM, einstellungen, celsius(27));
+
+    const wechselNachts = stunden.filter((stunde, i) => {
+      const h = stunde.zeit.getHours();
+      const vorige = stunden[i - 1];
+      if (!vorige || !(h >= 22 || h < 7)) return false;
+      return vorige.empfehlung.status === 'oeffnen' && stunde.empfehlung.status === 'schliessen';
+    });
+
+    expect(wechselNachts).toHaveLength(0);
+  });
+
+  it('lässt die Vorausschau tagsüber unangewendet', () => {
+    // Wer da ist, kann rechtzeitig schliessen, dort genügt die gewöhnliche
+    // Regel an der Untergrenze.
+    const wetter = erzeugeWetterstunden(Array.from({ length: 6 }, () => 10), 9);
+    const { stunden } = simuliere(wetter, TEST_GEBAEUDE, TEST_RAUM, einstellungen, celsius(26));
+
+    expect(stunden[0]?.empfehlung.status).toBe('oeffnen');
   });
 
   it('bremst die Nachtauskühlung an der Untergrenze spürbar ab', () => {
@@ -405,7 +460,7 @@ describe('simuliere', () => {
   });
 });
 
-describe('simuliere – Raumtypen', () => {
+describe('simuliere: Raumtypen', () => {
   const einstellungen = testEinstellungen({ hystereseK: kelvin(2), minRaumtemperaturC: celsius(20), zielTemperaturC: celsius(24) });
   const schulzimmer = findeRaumtyp('schulzimmer')!;
   const buero = findeRaumtyp('buero')!;
@@ -497,7 +552,7 @@ describe('simuliere – Raumtypen', () => {
   });
 
   it('lässt die Bundesfeier das Büro leer stehen', () => {
-    // Der 1. August 2026 ist ein Samstag – deshalb der 1. August 2027, ein Sonntag …
+    // Der 1. August 2026 ist ein Samstag, deshalb der 1. August 2027, ein Sonntag …
     // beide sind ohnehin frei. Geprüft wird darum Neujahr 2027, ein Freitag.
     const neujahr = erzeugeWetterstunden(Array.from({ length: 12 }, () => 5), 8, 0, 1).map(
       (stunde) => ({ ...stunde, zeit: new Date(2027, 0, 1, stunde.zeit.getHours()) }),
@@ -518,7 +573,7 @@ describe('simuliere – Raumtypen', () => {
     const { stunden } = simuliere(wetter, TEST_GEBAEUDE, wohnung, einstellungen, celsius(26));
 
     for (const stunde of stunden) {
-      // Der Kühlungshinweis darf erscheinen – die Wohnung braucht bloss keine
+      // Der Kühlungshinweis darf erscheinen, die Wohnung braucht bloss keine
       // Stosslüftung wegen der Luftqualität.
       expect(stunde.empfehlung.zusatzhinweise.map((h) => h.art)).not.toContain('luftqualitaet');
     }
@@ -533,14 +588,14 @@ describe('simuliere – Raumtypen', () => {
  *   (T_aussen − T_innen) / τ_offen + q  <  (T_aussen − T_innen) / τ_zu + q
  *
  * also wenn (T_aussen − T_innen) · (1/τ_offen − 1/τ_zu) < 0. Weil τ_offen immer
- * kleiner ist als τ_zu, ist der zweite Faktor positiv – die Wärmelast q kürzt
+ * kleiner ist als τ_zu, ist der zweite Faktor positiv, die Wärmelast q kürzt
  * sich vollständig heraus. Übrig bleibt genau die Bedingung T_aussen < T_innen,
  * auf der die Lüftungslogik beruht.
  *
  * Diese Tests sichern die Eigenschaft ab: Wer an der Lüftungslogik oder an den
  * Zeitkonstanten schraubt, darf sie nicht unbemerkt verlieren.
  */
-describe('Lüftungsstrategie – länger lüften ist nie schlechter', () => {
+describe('Lüftungsstrategie, länger lüften ist nie schlechter', () => {
   it('kühlt bei kühlerer Aussenluft in jeder Gebäude- und Raumkombination besser', () => {
     // Voller Mittag mit Sonne: die Lasten wirken so stark wie überhaupt möglich.
     const [mittag] = erzeugeWetterstunden([24], 12, 800, MONTAG);
@@ -551,7 +606,7 @@ describe('Lüftungsstrategie – länger lüften ist nie schlechter', () => {
         const offen = naechsteRaumtemperatur(startC, mittag!, gebaeude, raum, true);
         const zu = naechsteRaumtemperatur(startC, mittag!, gebaeude, raum, false);
 
-        // Beide dürfen steigen – entscheidend ist, dass offen langsamer steigt.
+        // Beide dürfen steigen, entscheidend ist, dass offen langsamer steigt.
         expect(offen).toBeLessThan(zu);
       }
     }
@@ -566,7 +621,7 @@ describe('Lüftungsstrategie – länger lüften ist nie schlechter', () => {
     const offen = naechsteRaumtemperatur(celsius(25), mittag!, dachgeschoss, schulzimmer, true);
     const zu = naechsteRaumtemperatur(celsius(25), mittag!, dachgeschoss, schulzimmer, false);
 
-    // Der Raum heizt sich in beiden Fällen auf – Lüften bremst es nur.
+    // Der Raum heizt sich in beiden Fällen auf: Lüften bremst es nur.
     expect(offen).toBeGreaterThan(25);
     expect(offen).toBeLessThan(zu);
   });

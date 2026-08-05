@@ -2,7 +2,7 @@
  * Himmelsrichtungen der Hauptfensterfläche.
  *
  * Der Azimut ist geografisch gezählt: 0 = Nord, 90 = Ost, 180 = Süd,
- * 270 = West – dieselbe Konvention wie beim Sonnenazimut in
+ * 270 = West, dieselbe Konvention wie beim Sonnenazimut in
  * `logik/sonnenstand.ts`.
  *
  * Hat ein Raum Fenster nach mehreren Seiten, zählt die grösste Fläche. Eine
@@ -23,7 +23,7 @@ export const AUSRICHTUNGEN: readonly Ausrichtung[] = [
     id: 'nord',
     name: 'Nord',
     azimutGrad: 0,
-    hinweis: 'Nur Streulicht – die kühlste Lage im Sommer.',
+    hinweis: 'Nur Streulicht, die kühlste Lage im Sommer.',
   },
   {
     id: 'nordost',
@@ -53,7 +53,7 @@ export const AUSRICHTUNGEN: readonly Ausrichtung[] = [
     id: 'suedwest',
     name: 'Südwest',
     azimutGrad: 225,
-    hinweis: 'Lange Besonnung bis in den Abend – zunehmend kritisch.',
+    hinweis: 'Lange Besonnung bis in den Abend, zunehmend kritisch.',
   },
   {
     id: 'west',

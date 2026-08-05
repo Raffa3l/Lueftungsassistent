@@ -4,7 +4,7 @@ import { symbolInfo } from './symbole.ts';
 /**
  * Kleines Fragezeichen, das die Physik hinter einer Zahl erklärt.
  *
- * Die App zeigt viele berechnete Werte, deren Annahmen unsichtbar bleiben – die
+ * Die App zeigt viele berechnete Werte, deren Annahmen unsichtbar bleiben, die
  * Raumtemperatur ist geschätzt, die Wärmelasten sind Erfahrungswerte, die
  * Schwellen stammen aus Normen. Wer das nicht weiss, hält die Zahlen für
  * Messwerte.
@@ -15,8 +15,8 @@ import { symbolInfo } from './symbole.ts';
  * öffnet die Erklärung auf drei Wegen:
  *
  *   - Mauszeiger darüber (`:hover`)
- *   - Tastaturfokus (`:focus-visible`) – Tab-Reihenfolge, sichtbarer Fokus
- *   - Tippen oder Klicken (`aria-expanded`) – der einzige Weg auf dem Handy
+ *   - Tastaturfokus (`:focus-visible`): Tab-Reihenfolge, sichtbarer Fokus
+ *   - Tippen oder Klicken (`aria-expanded`), der einzige Weg auf dem Handy
  *
  * Escape schliesst wieder. Der Knopf trägt ein `aria-label` mit dem Thema,
  * damit die Vorlesereihenfolge verständlich bleibt.
@@ -25,7 +25,7 @@ import { symbolInfo } from './symbole.ts';
 let zaehler = 0;
 
 /**
- * @param thema Worum es geht – wird Teil der Beschriftung für Screenreader
+ * @param thema Worum es geht, wird Teil der Beschriftung für Screenreader
  *              («Erklärung: Raumtemperatur»).
  * @param text  Die Erklärung selbst, ein bis drei Sätze.
  */
@@ -50,7 +50,7 @@ export function infofeld(thema: string, text: string): HTMLElement {
   /**
    * Hält die Blase im sichtbaren Bereich.
    *
-   * Sie ist unter dem Symbol zentriert – am linken oder rechten Rand ragt sie
+   * Sie ist unter dem Symbol zentriert, am linken oder rechten Rand ragt sie
    * damit hinaus. Eine feste Ausrichtung per Media Query löst das nicht: Was
    * rechts hilft, schadet links. Deshalb wird beim Öffnen gemessen und nur so
    * weit verschoben, wie nötig.
@@ -85,7 +85,7 @@ export function infofeld(thema: string, text: string): HTMLElement {
     knopf.setAttribute('aria-expanded', String(offen));
   };
 
-  // Auch bei Maus und Tastatur ausrichten – dort öffnet allein das CSS.
+  // Auch bei Maus und Tastatur ausrichten, dort öffnet allein das CSS.
   knopf.addEventListener('mouseenter', positioniere);
   knopf.addEventListener('focus', positioniere);
 
@@ -108,7 +108,7 @@ export function infofeld(thema: string, text: string): HTMLElement {
 }
 
 /**
- * Hängt ein Infofeld an ein bestehendes Element an – für Beschriftungen, die
+ * Hängt ein Infofeld an ein bestehendes Element an, für Beschriftungen, die
  * bereits stehen und nur ergänzt werden sollen.
  */
 export function ergaenzeInfofeld(ziel: HTMLElement, thema: string, text: string): void {

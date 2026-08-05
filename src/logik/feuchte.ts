@@ -21,11 +21,11 @@ import {
  * Die scheinbar «nasse» Nachtluft trocknet den Raum also, und nach dem
  * Erwärmen auf 26 °C liegt sie bei rund 51 % rF. Solange es draussen kühler
  * ist, ist die Aussenluft in bewohnten Räumen praktisch immer auch die
- * trockenere – Kühlen und Entfeuchten stehen sich nicht im Weg.
+ * trockenere: Kühlen und Entfeuchten stehen sich nicht im Weg.
  *
  * Der umgekehrte Fall ist der kritische: schwüle Tagluft trifft auf einen
  * nachtausgekühlten Raum. Dann schlägt sich Wasser an kühlen Wänden und Böden
- * nieder – der klassische Fehler der sommerlichen Kellerlüftung.
+ * nieder, der klassische Fehler der sommerlichen Kellerlüftung.
  *
  * Grundlage ist die Magnus-Formel über Wasser mit den WMO-Koeffizienten. Der
  * Luftdruck wird als konstant angenommen; für die Höhenlage der Schweizer
@@ -52,7 +52,7 @@ export const SCHWUELE_TAUPUNKT_C = celsius(16);
  * Sicherheitsabstand zur Raumtemperatur bei der Kondensationsprüfung.
  *
  * Boden, Aussenwände und Kellerdecken sind nach einer Nachtauskühlung kühler
- * als die Raumluft – dort fällt Wasser aus, bevor es die Raumluft überhaupt
+ * als die Raumluft, dort fällt Wasser aus, bevor es die Raumluft überhaupt
  * merkt. Das Ein-Knoten-Modell kennt diese Oberflächen nicht, deshalb der
  * pauschale Abschlag.
  */
@@ -64,7 +64,7 @@ export function saettigungsdampfdruckHPa(temperaturC: Celsius): number {
 }
 
 /**
- * Taupunkt aus Temperatur und relativer Feuchte – die Umkehrung der
+ * Taupunkt aus Temperatur und relativer Feuchte, die Umkehrung der
  * Magnus-Formel. Nur als Rückfallweg gedacht: Die Wetter-API liefert den
  * Taupunkt direkt und genauer.
  */
@@ -97,7 +97,7 @@ export function absoluteFeuchteGProKg(taupunktC: Celsius): GrammProKg {
  *
  * Damit lässt sich abschätzen, wie feucht die Raumluft ist, ohne sie zu messen:
  * Ohne Feuchtequellen entspricht ihre absolute Feuchte der draussen, und die
- * Raumtemperatur ist bekannt. Die Schätzung ist eine Untergrenze – Personen,
+ * Raumtemperatur ist bekannt. Die Schätzung ist eine Untergrenze: Personen,
  * Duschen und Kochen kommen hinzu.
  */
 export function relativeFeuchteProzent(temperaturC: Celsius, taupunktC: Celsius): number {
@@ -114,7 +114,7 @@ export function istSchwuel(taupunktC: Celsius): boolean {
  * Droht Tauwasser, wenn diese Aussenluft in den Raum strömt?
  *
  * Wahr, sobald der Aussentaupunkt bis auf den Sicherheitsabstand an die
- * Raumtemperatur heranreicht – dann liegen die kühlsten Oberflächen im Raum
+ * Raumtemperatur heranreicht, dann liegen die kühlsten Oberflächen im Raum
  * bereits darunter.
  */
 export function drohtKondensation(taupunktAussenC: Celsius, raumtemperaturC: Celsius): boolean {

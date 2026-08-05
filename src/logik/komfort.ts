@@ -16,7 +16,7 @@ import { GRENZWERTE } from '../konfiguration/standardwerte.ts';
  * Für den Lüftungsassistenten heisst das: Eine fest eingestellte
  * Wunschtemperatur von 24 °C ist im Hochsommer zu streng. Sie lässt Stunden als
  * dringlich erscheinen, in denen Lüften weder nötig noch überhaupt erreichbar
- * ist. Die App rechnet deshalb einen Vorschlag aus – übernehmen muss ihn der
+ * ist. Die App rechnet deshalb einen Vorschlag aus, übernehmen muss ihn der
  * Nutzer selbst.
  */
 
@@ -39,7 +39,7 @@ const MITTEL_MAX_C = 30;
 /**
  * Obergrenze des Vorschlags.
  *
- * Die Gerade der EN 16798-1 läuft bis über 28 °C – sie beschreibt aber, was
+ * Die Gerade der EN 16798-1 läuft bis über 28 °C, sie beschreibt aber, was
  * Menschen bei anhaltender Hitze noch *tolerieren*, nicht was als Zielwert
  * taugt. SIA 180 deckelt die Kurve deshalb; oberhalb von rund 26.5 °C gilt ein
  * Raum auch nach einer Hitzewoche nicht mehr als behaglich. Ohne diesen Deckel
@@ -52,7 +52,7 @@ const BEHAGLICH_MAX_C = 26.5;
  * Exponentiell gleitendes Mittel der Aussentemperatur der Vortage (θ_rm).
  *
  * Gezählt werden ausschliesslich vollständige Kalendertage **vor** dem
- * Bezugstag – der laufende Tag ist noch nicht abgeschlossen und würde das
+ * Bezugstag, der laufende Tag ist noch nicht abgeschlossen und würde das
  * Mittel je nach Tageszeit verzerren.
  *
  * Liefert `undefined`, wenn zu wenige Vortage vorliegen.
@@ -101,7 +101,7 @@ export function gleitendesAussenmittelC(
  * Mitte des Behaglichkeitsbands): θ = 0.33 · θ_rm + 18.8, nach oben gedeckelt.
  *
  * Ausserhalb des Gültigkeitsbereichs von 10 bis 30 °C liefert die Funktion
- * `undefined`, statt die Gerade zu verlängern – im Winter gilt ein anderes
+ * `undefined`, statt die Gerade zu verlängern, im Winter gilt ein anderes
  * Modell.
  */
 export function behaglichkeitstemperaturC(aussenmittelC: Celsius): Celsius | undefined {
@@ -114,7 +114,7 @@ export function behaglichkeitstemperaturC(aussenmittelC: Celsius): Celsius | und
  * Eingabefelds und auf dessen Grenzen beschnitten.
  *
  * `undefined` heisst: Für einen belastbaren Vorschlag reicht die Datenlage
- * nicht – die Oberfläche zeigt dann gar keinen an.
+ * nicht, die Oberfläche zeigt dann gar keinen an.
  */
 export function vorgeschlageneZieltemperaturC(
   wetter: readonly Wetterstunde[],

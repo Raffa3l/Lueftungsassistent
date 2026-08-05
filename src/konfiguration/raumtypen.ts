@@ -10,10 +10,10 @@ import { datumsSchluessel, findeFeiertag } from './feiertage.ts';
  * sitzender Mensch gibt rund 70 W trockene Wärme ab.
  *
  *   Schulzimmer  24 Personen auf 60 m² → 0.4 P/m² × 70 W ≈ 28 W/m², dazu
- *                Beleuchtung und Geräte – zusammen rund 35 W/m².
+ *                Beleuchtung und Geräte, zusammen rund 35 W/m².
  *   Büro         eine Person je 10 m² → 7 W/m², dazu Rechner, Bildschirme
- *                und Beleuchtung – zusammen rund 20 W/m².
- *   Wohnung      zeitweise belegt, wenig Technik – rund 8 W/m².
+ *                und Beleuchtung, zusammen rund 20 W/m².
+ *   Wohnung      zeitweise belegt, wenig Technik, rund 8 W/m².
  *
  * Wie stark eine Last die Temperatur treibt, hängt vom Gebäudetyp ab: Die
  * Umrechnung in Kelvin pro Stunde erfolgt über dessen Speicherkapazität
@@ -24,7 +24,7 @@ export const RAUMTYPEN: readonly Raumtyp[] = [
     id: 'wohnung',
     name: 'Wohnung',
     beschreibung:
-      'Wohn- und Schlafräume. Geringe Lasten, dafür rund um die Uhr nutzbar – die Nachtauskühlung ist hier am wirksamsten.',
+      'Wohn- und Schlafräume. Geringe Lasten, dafür rund um die Uhr nutzbar: Die Nachtauskühlung ist hier am wirksamsten.',
     belegungslastWProM2: wattProM2(8),
     grundlastWProM2: wattProM2(3),
     belegung: { vonStunde: 7, bisStunde: 23, nurWerktags: false },
@@ -72,8 +72,8 @@ export interface Kalender {
 const LEERER_KALENDER: Kalender = { ferien: [], feiertageBeachten: false };
 
 /**
- * Nennt den Grund, warum an diesem Tag nicht gearbeitet wird – Name des
- * Feiertags oder des Ferienzeitraums –, sonst `undefined`.
+ * Nennt den Grund, warum an diesem Tag nicht gearbeitet wird, also den Namen des
+ * Feiertags oder des Ferienzeitraums, sonst `undefined`.
  *
  * Eigene Einträge gewinnen vor den Feiertagen: Wer einen Zeitraum selbst
  * benennt, will diesen Namen sehen.
@@ -93,7 +93,7 @@ export function findeFreienTag(zeit: Date, kalender: Kalender): string | undefin
  * Ist der Raum zu diesem Zeitpunkt belegt?
  *
  * Ohne Kalender zählen nur Belegungszeit und Wochentag; mit Kalender kommen
- * Feiertage und Ferien dazu – aber nur für Nutzungen, die darauf Rücksicht
+ * Feiertage und Ferien dazu, aber nur für Nutzungen, die darauf Rücksicht
  * nehmen (`beachtetFerien`).
  */
 export function istBelegt(

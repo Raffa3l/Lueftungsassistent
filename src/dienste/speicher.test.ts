@@ -62,7 +62,7 @@ describe('ladeEinstellungen', () => {
   });
 
   it('ergänzt den Raumtyp bei Einstellungen aus einer früheren Version', () => {
-    // Vor den Raumtypen gespeicherter Stand – darf die App nicht aus dem Tritt bringen
+    // Vor den Raumtypen gespeicherter Stand, darf die App nicht aus dem Tritt bringen
     localStorage.setItem(
       SCHLUESSEL,
       JSON.stringify({ stationId: 'bern', gebaeudetypId: 'altbau-massiv', zielTemperaturC: 25 }),
@@ -114,7 +114,7 @@ describe('ladeEinstellungen', () => {
   });
 });
 
-describe('ladeEinstellungen – Ferienzeiträume', () => {
+describe('ladeEinstellungen: Ferienzeiträume', () => {
   const gueltig = { id: 'f1', name: 'Sommerferien', von: '2026-07-06', bis: '2026-08-16' };
 
   function ladeMitFerien(ferien: unknown) {
@@ -170,7 +170,7 @@ describe('ladeEinstellungen – Ferienzeiträume', () => {
   });
 });
 
-describe('setzeEinstellungenZurueck – Unabhängigkeit', () => {
+describe('setzeEinstellungenZurueck: Unabhängigkeit', () => {
   it('teilt die Ferienliste nicht mit den Standardwerten', () => {
     const zurueckgesetzt = setzeEinstellungenZurueck();
     zurueckgesetzt.ferien.push({ id: 'x', name: 'Test', von: '2026-01-01', bis: '2026-01-02' });

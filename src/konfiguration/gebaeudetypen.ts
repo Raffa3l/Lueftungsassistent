@@ -4,29 +4,29 @@ import { celsius, stunden, wattProM2, whProM2K } from '../einheiten.ts';
 /**
  * Bauliche Startkonfiguration typischer Schweizer Gebäude.
  *
- * Hier stehen ausschliesslich Eigenschaften der Bausubstanz – wie träge der Raum
+ * Hier stehen ausschliesslich Eigenschaften der Bausubstanz: wie träge der Raum
  * ist, wie viel Sonne hereinkommt, wie viel Wärme die Masse aufnehmen kann. Was
  * an Wärme durch Personen und Geräte anfällt, steht beim Raumtyp.
  *
  * Der solare Eintrag gilt **ohne Sonnenschutz** und bezogen auf die
  * Einstrahlung in der Fensterebene. Der Behang wird separat gewählt
- * (`sonnenschutz.ts`), die Ausrichtung ebenfalls (`ausrichtungen.ts`) – die
+ * (`sonnenschutz.ts`), die Ausrichtung ebenfalls (`ausrichtungen.ts`). Die
  * Bausubstanz beschreibt nur, wie viel Fensterfläche und Glasqualität
  * überhaupt vorhanden sind.
  *
  * `solarAnteilOhneAusrichtung` trennt davon den Teil ab, der nicht am Fenster
  * hängt: Ein Dachgeschoss heizt sich auch mit Nordfenstern auf, weil die Sonne
- * aufs Dach brennt – deshalb dort 0.55 gegenüber 0.10 im Mittelgeschoss.
+ * aufs Dach brennt, deshalb dort 0.55 gegenüber 0.10 im Mittelgeschoss.
  *
- * Die Liste deckt alle drei Nutzungen ab. Die meisten Einträge – Altbau,
- * Sanierung, Neubau, Leichtbau, Dachgeschoss – gelten für Wohnungen, Schulzimmer
+ * Die Liste deckt alle drei Nutzungen ab. Die meisten Einträge (Altbau,
+ * Sanierung, Neubau, Leichtbau, Dachgeschoss) gelten für Wohnungen, Schulzimmer
  * und Büros gleichermassen; nur die beiden Epochen-Einträge zu 1950–1980 sind
  * getrennt, weil sich Wohn- und Zweckbauten dieser Zeit gerade dort
  * unterscheiden, wo es fürs Modell zählt:
  *
  *   Ein Schulhaus oder Bürobau der Nachkriegszeit hat **mehr** Beton verbaut als
  *   ein Wohnbau derselben Jahre, aber durch die abgehängte Akustikdecke
- *   **weniger** wirksame Speichermasse – die Betondecke ist thermisch
+ *   **weniger** wirksame Speichermasse: Die Betondecke ist thermisch
  *   abgekoppelt. Dazu kommt das Fensterband über die ganze Front. Beides wirkt
  *   in dieselbe Richtung: schneller warm, schneller wieder kühl.
  *
@@ -41,7 +41,7 @@ import { celsius, stunden, wattProM2, whProM2K } from '../einheiten.ts';
  * Die Verzögerung streut weniger, als man erwarten würde: Ein einpoliges
  * RC-Glied kann die Tageswelle höchstens um eine Viertelperiode verschieben,
  * also um 6 Stunden. Über alle Bauarten liegen deshalb nur 4.1 bis 5.5 Stunden
- * dazwischen – unterscheiden tun sie sich vor allem in der Dämpfung.
+ * dazwischen. Unterscheiden tun sie sich vor allem in der Dämpfung.
  */
 export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
   {
@@ -71,7 +71,7 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     id: 'zweckbau-nachkriegs',
     name: 'Schul- oder Bürobau 1950–1980',
     beschreibung:
-      'Betonskelett mit Fensterband, meist abgehängte Akustikdecke. Viel Glas, wenig wirksame Speichermasse – heizt sich schneller auf als ein Wohnbau derselben Jahre.',
+      'Betonskelett mit Fensterband, meist abgehängte Akustikdecke. Viel Glas, wenig wirksame Speichermasse, heizt sich schneller auf als ein Wohnbau derselben Jahre.',
     zeitkonstanteGeschlossenH: stunden(14),
     zeitkonstanteOffenH: stunden(5),
     solarerEintragMaxWProM2: wattProM2(95),
@@ -83,7 +83,7 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     id: 'buero-glasfassade',
     name: 'Bürobau mit Glasfassade (1960–1990)',
     beschreibung:
-      'Grossflächige Verglasung, Teppich und abgehängte Decke. Nach dem Dachgeschoss der kritischste Fall – hier entscheidet der aussenliegende Sonnenschutz alles.',
+      'Grossflächige Verglasung, Teppich und abgehängte Decke. Nach dem Dachgeschoss der kritischste Fall: Hier entscheidet der aussenliegende Sonnenschutz alles.',
     zeitkonstanteGeschlossenH: stunden(10),
     zeitkonstanteOffenH: stunden(3.5),
     solarerEintragMaxWProM2: wattProM2(110),
@@ -95,7 +95,7 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     id: 'saniert-massiv',
     name: 'Saniertes Massivgebäude',
     beschreibung:
-      'Massivbau mit nachträglicher Aussendämmung, ob Wohnhaus, Schulhaus oder Verwaltungsbau. Sehr träge – kühle Nächte wirken über Tage nach.',
+      'Massivbau mit nachträglicher Aussendämmung, ob Wohnhaus, Schulhaus oder Verwaltungsbau. Sehr träge, kühle Nächte wirken über Tage nach.',
     zeitkonstanteGeschlossenH: stunden(35),
     zeitkonstanteOffenH: stunden(9),
     solarerEintragMaxWProM2: wattProM2(80),
@@ -107,7 +107,7 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
     id: 'neubau-minergie',
     name: 'Neubau / Minergie',
     beschreibung:
-      'Sehr gut gedämmt, dichte Hülle, grosse Fensterflächen – für alle Nutzungen. Ohne Sonnenschutz droht Überhitzung.',
+      'Sehr gut gedämmt, dichte Hülle, grosse Fensterflächen, für alle Nutzungen. Ohne Sonnenschutz droht Überhitzung.',
     zeitkonstanteGeschlossenH: stunden(24),
     zeitkonstanteOffenH: stunden(6),
     solarerEintragMaxWProM2: wattProM2(85),
@@ -118,7 +118,7 @@ export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
   {
     id: 'holzbau-leichtbau',
     name: 'Holz- oder Leichtbau',
-    beschreibung: 'Wenig Speichermasse: reagiert schnell auf Aussentemperatur – Lüften wirkt sofort, Hitze aber auch.',
+    beschreibung: 'Wenig Speichermasse: reagiert schnell auf Aussentemperatur, Lüften wirkt sofort, Hitze aber auch.',
     zeitkonstanteGeschlossenH: stunden(12),
     zeitkonstanteOffenH: stunden(4),
     solarerEintragMaxWProM2: wattProM2(65),

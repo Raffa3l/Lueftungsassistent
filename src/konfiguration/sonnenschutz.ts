@@ -9,7 +9,7 @@
  *   aussenliegend (Storen, Rollladen) g ≈ 0.10–0.15
  *
  * Zwischen aussenliegendem Schutz und gar keinem liegt damit **Faktor vier**.
- * Das ist der grösste Einzelhebel gegen sommerliche Überhitzung – der Grund,
+ * Das ist der grösste Einzelhebel gegen sommerliche Überhitzung, der Grund,
  * warum sich der Nachweis nach SIA 180 fast nur darum dreht.
  *
  * Warum innenliegender Schutz so wenig bringt: Die Strahlung hat die Scheibe
@@ -18,7 +18,7 @@
  *
  * Die Faktoren sind auf «kein Sonnenschutz» = 1.0 bezogen; der Gebäudetyp gibt
  * den Eintrag ohne Behang an (`solarerEintragMaxWProM2`). So bleiben
- * Bausubstanz und Verschattung getrennt – wie schon Gebäude und Nutzung.
+ * Bausubstanz und Verschattung getrennt, wie schon Gebäude und Nutzung.
  */
 
 export type SonnenschutzId = 'keiner' | 'innen' | 'aussen';
@@ -55,7 +55,7 @@ export const SONNENSCHUTZ_ARTEN: readonly Sonnenschutz[] = [
     kurzname: 'Sonnenschutz aussen',
     faktor: 0.25,
     beschreibung:
-      'Die Wärme bleibt draussen – viermal weniger Eintrag als ohne Schutz und der stärkste Hebel überhaupt.',
+      'Die Wärme bleibt draussen: viermal weniger Eintrag als ohne Schutz und der stärkste Hebel überhaupt.',
   },
 ];
 

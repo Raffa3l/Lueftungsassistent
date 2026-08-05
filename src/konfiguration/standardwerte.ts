@@ -34,7 +34,7 @@ export const NACHT_BEGINN_STUNDE = 22;
 export const NACHT_ENDE_STUNDE = 7;
 
 /**
- * Referenz-Globalstrahlung auf die Waagrechte – Bezugsgrösse für den Anteil des
+ * Referenz-Globalstrahlung auf die Waagrechte: Bezugsgrösse für den Anteil des
  * solaren Eintrags, der nicht an der Fensterausrichtung hängt (Dachflächen).
  */
 export const REFERENZ_GLOBALSTRAHLUNG_W_PRO_M2 = wattProM2(800);

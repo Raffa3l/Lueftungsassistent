@@ -10,7 +10,7 @@ import { taupunktAusFeuchte } from '../logik/feuchte.ts';
  * MeteoSchweiz stellt seine Messdaten über opendata.swiss und IDAWEB bereit.
  * IDAWEB verlangt eine Registrierung und liefert Dateien statt einer Web-API;
  * die offenen CSV-Feeds auf opendata.swiss enthalten Messwerte, aber keine
- * stündliche Prognose – und ohne Prognose kann der Assistent nicht sagen,
+ * stündliche Prognose, und ohne Prognose kann der Assistent nicht sagen,
  * wann die Fenster zu schliessen sind. Open-Meteo ist kostenlos, benötigt
  * keinen Schlüssel, liefert CORS-Header und gibt die Modelle von MeteoSchweiz
  * weiter (siehe `MODELL`).
@@ -18,7 +18,7 @@ import { taupunktAusFeuchte } from '../logik/feuchte.ts';
  * Zeitzonen-Konvention (wichtig):
  * Die API liefert mit `timezone=Europe/Zurich` lokale Zeitstempel ohne Offset
  * («2026-08-01T14:00»). Diese werden bewusst als lokale Gerätezeit geparst.
- * Dadurch entspricht `zeit.getHours()` immer der Schweizer Wanduhrzeit – auch
+ * Dadurch entspricht `zeit.getHours()` immer der Schweizer Wanduhrzeit, auch
  * wenn das Gerät in einer anderen Zeitzone steht. Der aktuelle Zeitpunkt muss
  * deshalb über `jetztInStationszeit()` bestimmt werden, nicht über `new Date()`.
  */
@@ -28,12 +28,12 @@ const ZEITZONE = 'Europe/Zurich';
 const PROGNOSE_TAGE = 3;
 
 /**
- * Wettermodell – muss ausdrücklich gewählt werden.
+ * Wettermodell, muss ausdrücklich gewählt werden.
  *
  * Ohne diesen Parameter nimmt Open-Meteo seine weltweite Voreinstellung
  * «best match», und die ist für die Schweiz **ICON-D2 des Deutschen
  * Wetterdienstes**, nicht das Modell von MeteoSchweiz. Zwischen beiden liegen
- * im Sommer mehrere Grad – bei einer Schaltdifferenz von 2 Grad genug, um die
+ * im Sommer mehrere Grad, bei einer Schaltdifferenz von 2 Grad genug, um die
  * Empfehlung umzukehren.
  *
  * MeteoSchweiz bietet über Open-Meteo drei Kennungen an:
@@ -48,7 +48,7 @@ const PROGNOSE_TAGE = 3;
  */
 const MODELL = 'meteoswiss_icon_seamless';
 
-/** Fehler beim Laden der Wetterdaten – Meldung ist für die Anzeige geeignet. */
+/** Fehler beim Laden der Wetterdaten: Meldung ist für die Anzeige geeignet. */
 export class WetterdatenFehler extends Error {
   constructor(meldung: string, public readonly ursache?: unknown) {
     super(meldung);
@@ -156,12 +156,12 @@ export function wandleAntwortUm(daten: OpenMeteoAntwort): Wetterstunde[] {
 
     const relativeFeuchteProzent = feuchten[i] ?? 0;
     // Fehlt der Taupunkt, aus Temperatur und relativer Feuchte nachrechnen.
-    // Fehlen beide, ergibt das eine sehr trockene Luft – dann entfallen die
+    // Fehlen beide, ergibt das eine sehr trockene Luft, dann entfallen die
     // Feuchtehinweise, statt vor etwas zu warnen, das niemand geprüft hat.
     const taupunkt =
       taupunkte[i] ?? taupunktAusFeuchte(celsius(temperatur), relativeFeuchteProzent);
 
-    // Die API liefert blanke Zahlen – hier bekommen sie ihre Einheit.
+    // Die API liefert blanke Zahlen, hier bekommen sie ihre Einheit.
     stunden.push({
       zeit: new Date(zeitText),
       aussentemperaturC: celsius(temperatur),
@@ -175,7 +175,7 @@ export function wandleAntwortUm(daten: OpenMeteoAntwort): Wetterstunde[] {
       // Ohne Windangabe konservativ mit Windstille rechnen: Das Modell kühlt
       // dann langsamer aus, verspricht also eher zu wenig als zu viel.
       windgeschwindigkeitMProS: meterProSekunde(winde[i] ?? 0),
-      // Fehlt die Böe, gilt der Mittelwind – lieber der kleinere Wert als eine
+      // Fehlt die Böe, gilt der Mittelwind, lieber der kleinere Wert als eine
       // Warnung, die auf nichts beruht.
       windboeeMProS: meterProSekunde(boeen[i] ?? winde[i] ?? 0),
       niederschlagMmProH: millimeterProStunde(niederschlaege[i] ?? 0),
@@ -191,7 +191,7 @@ export function wandleAntwortUm(daten: OpenMeteoAntwort): Wetterstunde[] {
 }
 
 /**
- * Aktuelle Schweizer Wanduhrzeit als Date, dargestellt in Gerätezeit –
+ * Aktuelle Schweizer Wanduhrzeit als Date, dargestellt in Gerätezeit,
  * passend zur Zeitkonvention der API-Zeitstempel (siehe Modulkommentar).
  */
 export function jetztInStationszeit(referenz: Date = new Date()): Date {

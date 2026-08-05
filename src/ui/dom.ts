@@ -1,7 +1,7 @@
 /**
  * Kleine DOM-Helfer.
  *
- * Alle Inhalte werden über `textContent` bzw. `setAttribute` gesetzt – es wird
+ * Alle Inhalte werden über `textContent` bzw. `setAttribute` gesetzt, es wird
  * nirgends HTML aus Daten zusammengebaut.
  */
 

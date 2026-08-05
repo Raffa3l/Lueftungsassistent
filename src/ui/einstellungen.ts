@@ -26,7 +26,7 @@ import { INFO } from './infotexte.ts';
  * einem durchlaufenden Zweispaltenraster: Ein Raster füllt zeilenweise auf und
  * stellt dabei Felder nebeneinander, die sachlich nichts miteinander zu tun
  * haben. Ausrichtung und Sonnenschutz gehören zusammen, Raum- und Gebäudetyp
- * ebenso – und weil beide Paare ähnlich hohe Kennwertlisten tragen, entstehen
+ * ebenso, und weil beide Paare ähnlich hohe Kennwertlisten tragen, entstehen
  * auch keine Lücken mehr.
  */
 
@@ -115,7 +115,7 @@ export function baueEinstellungsformular(
   // Vorschlag nach dem adaptiven Komfortmodell: ein Knopf neben der Eingabe,
   // die er ändern würde. Als Kasten darunter beanspruchte er vier Zeilen für
   // eine einzige Zahl und schob beim Erscheinen das halbe Formular nach unten.
-  // Die Begründung steht im Infofeld daneben – ausgeschrieben wiederholte sie
+  // Die Begründung steht im Infofeld daneben, ausgeschrieben wiederholte sie
   // nur, was das Infofeld beim Feldnamen ohnehin sagt.
   const vorschlagKnopf = el('button', { type: 'button', class: 'knopf--klein' });
   const vorschlagBereich = el('span', { class: 'feld__vorschlag', hidden: true }, [
@@ -173,7 +173,7 @@ export function baueEinstellungsformular(
     ]),
   ]);
 
-  // Verwirft alle Eingaben und steht deshalb abgesetzt am Fuss des Formulars –
+  // Verwirft alle Eingaben und steht deshalb abgesetzt am Fuss des Formulars,
   // nicht neben «Zeitraum hinzufügen», wo es wie eine weitere Eingabe wirkte.
   const zuruecksetzen = el('button', { type: 'button', class: 'knopf--zurueckhaltend' }, [
     'Auf Standardwerte zurücksetzen',
@@ -245,7 +245,7 @@ export function baueEinstellungsformular(
             el('div', { class: 'schalter' }, [
               nachtSchalter,
               el('label', { for: 'feld-nacht' }, [
-                'Nachts (22–07 Uhr) zum Lüften auffordern, wenn es draussen kühler ist',
+                'Auch nachts und ausserhalb der Nutzungszeit zum Lüften auffordern, wenn es draussen kühler ist',
               ]),
             ]),
           ]),
@@ -356,7 +356,7 @@ export function baueEinstellungsformular(
   };
 
   /**
-   * Der Vorschlag verschwindet, sobald er erreicht ist – sonst stünde dauerhaft
+   * Der Vorschlag verschwindet, sobald er erreicht ist, sonst stünde dauerhaft
    * eine Aufforderung da, die nichts mehr bewirkt.
    */
   const zeigeTemperaturvorschlag = (neuC: Celsius | undefined): void => {
@@ -365,7 +365,7 @@ export function baueEinstellungsformular(
     vorschlagBereich.hidden = !zeigen;
     if (!zeigen || neuC === undefined) return;
 
-    // Der sichtbare Text ist Teil des aria-labels – so trifft ihn auch, wer den
+    // Der sichtbare Text ist Teil des aria-labels, so trifft ihn auch, wer den
     // Knopf per Sprache anspricht.
     vorschlagKnopf.textContent = `${formatiereTemperatur(neuC)} übernehmen`;
     vorschlagKnopf.setAttribute(
@@ -382,7 +382,7 @@ export function baueEinstellungsformular(
  * Einzeiler über der eingeklappten Karte: worauf sich die Empfehlung stützt.
  *
  * Ohne ihn müsste man aufklappen, nur um zu sehen, für welchen Ort und welchen
- * Raum gerechnet wird – die Angaben, die eine Empfehlung überhaupt erst
+ * Raum gerechnet wird, die Angaben, die eine Empfehlung überhaupt erst
  * einordnen.
  */
 function fasseZusammen(einstellungen: Einstellungen): string {
@@ -430,7 +430,7 @@ function chip(inhalt: (Node | string)[]): HTMLElement {
   return el('li', { class: 'kennwert' }, inhalt);
 }
 
-/** Erklärender Satz zu den Kennwerten – volle Breite statt Etikett. */
+/** Erklärender Satz zu den Kennwerten, volle Breite statt Etikett. */
 function kennwertSatz(text: string): HTMLElement {
   return el('li', { class: 'kennwert kennwert--satz' }, [text]);
 }
@@ -483,14 +483,14 @@ function zeigeRaumInfo(
   if (raum.feuchtelastStossweise) {
     kennwerte.append(
       kennwertSatz(
-        'Nach Duschen, Kochen und Wäschetrocknen kurz kräftig lüften – unabhängig von der Temperatur.',
+        'Nach Duschen, Kochen und Wäschetrocknen kurz kräftig lüften, unabhängig von der Temperatur.',
       ),
     );
   }
 }
 
 /**
- * Neuer Zeitraum: ab heute für eine Woche – die häufigste Eingabe.
+ * Neuer Zeitraum: ab heute für eine Woche, die häufigste Eingabe.
  *
  * «Heute» ist der Schweizer Kalendertag, nicht der des Geräts: Die Ferientage
  * werden später gegen Zeitstempel in Stationszeit geprüft. Auf einem Gerät in
@@ -516,7 +516,7 @@ interface FerienzeileRueckrufe {
 /**
  * Eine Zeile der Ferienliste: Bezeichnung, Anfang, Ende, Entfernen.
  *
- * Liegt das Ende vor dem Anfang, wird es stillschweigend nachgeführt – das ist
+ * Liegt das Ende vor dem Anfang, wird es stillschweigend nachgeführt, das ist
  * verständlicher als eine Fehlermeldung und kann keinen ungültigen Zustand
  * erzeugen.
  */
@@ -574,7 +574,7 @@ interface ZahlenfeldOptionen {
 
 interface Zahlenfeld {
   wurzel: HTMLElement;
-  /** Zeile mit Eingabe und Schrittknöpfen – nimmt Beigaben wie den Vorschlag auf. */
+  /** Zeile mit Eingabe und Schrittknöpfen, nimmt Beigaben wie den Vorschlag auf. */
   eingabezeile: HTMLElement;
   setzeWert(wert: number): void;
 }
@@ -693,7 +693,7 @@ function zahlenfeld(optionen: ZahlenfeldOptionen): Zahlenfeld {
   };
 }
 
-/** Auf das Raster der Schrittweite runden – gegen 24.400000000000002. */
+/** Auf das Raster der Schrittweite runden, gegen 24.400000000000002. */
 function runde(wert: number, schritt: number): number {
   const stellen = (String(schritt).split('.')[1] ?? '').length;
   return Number((Math.round(wert / schritt) * schritt).toFixed(stellen));

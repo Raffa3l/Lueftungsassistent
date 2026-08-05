@@ -57,12 +57,12 @@ export interface Gebaeudetyp {
    * `REFERENZ_FASSADENSTRAHLUNG_W_PRO_M2`) und **ohne Sonnenschutz**.
    *
    * Enthält Fensterflächenanteil und Glasqualität. Der Behang ist bewusst
-   * herausgelöst und wird separat gewählt – so bleiben Bausubstanz und
+   * herausgelöst und wird separat gewählt, so bleiben Bausubstanz und
    * Verschattung getrennt, wie schon Gebäude und Nutzung.
    */
   solarerEintragMaxWProM2: WattProM2;
   /**
-   * Anteil des solaren Eintrags, der nicht an der Fensterausrichtung hängt –
+   * Anteil des solaren Eintrags, der nicht an der Fensterausrichtung hängt,
    * vor allem das Dach.
    *
    * Ein Dachgeschoss heizt sich auch mit Nordfenstern auf, weil die Sonne aufs
@@ -88,7 +88,7 @@ export interface Belegungszeit {
   vonStunde: number;
   /** Erste nicht mehr belegte Stunde (ausschliesslich). */
   bisStunde: number;
-  /** Nur Montag bis Freitag – für Schule und Büro. */
+  /** Nur Montag bis Freitag, für Schule und Büro. */
   nurWerktags: boolean;
 }
 
@@ -97,7 +97,7 @@ export interface Belegungszeit {
  * verbrauchter Luft mit sich?
  *
  * Bewusst getrennt vom Gebäudetyp: Die Bausubstanz bestimmt, wie träge ein Raum
- * reagiert – die Nutzung bestimmt, wie viel Wärme überhaupt anfällt. Ein
+ * reagiert, die Nutzung bestimmt, wie viel Wärme überhaupt anfällt. Ein
  * Schulzimmer im Altbau und eine Wohnung im Altbau teilen sich die Trägheit,
  * nicht aber die Lasten.
  */
@@ -112,7 +112,7 @@ export interface Raumtyp {
   belegung: Belegungszeit;
   /**
    * Ruht die Nutzung an Feiertagen und in den Ferien? Für Schulzimmer und Büro
-   * ja, für eine Wohnung nicht – die wird an Feiertagen eher stärker genutzt.
+   * ja, für eine Wohnung nicht, die wird an Feiertagen eher stärker genutzt.
    */
   beachtetFerien: boolean;
   /**
@@ -122,7 +122,7 @@ export interface Raumtyp {
    */
   stosslueftungNoetig: boolean;
   /**
-   * Fällt in dieser Nutzung stossweise viel Feuchte an – Duschen, Kochen,
+   * Fällt in dieser Nutzung stossweise viel Feuchte an: Duschen, Kochen,
    * Wäschetrocknen?
    *
    * Diese Spitzen lassen sich nicht vorhersagen und gehen deshalb nicht in die
@@ -137,7 +137,7 @@ export interface Raumtyp {
 export interface Wetterstunde {
   zeit: Date;
   aussentemperaturC: Celsius;
-  /** Globalstrahlung auf die Waagrechte in W/m² – Dachflächen und Bodenreflex. */
+  /** Globalstrahlung auf die Waagrechte in W/m²: Dachflächen und Bodenreflex. */
   globalstrahlungWProM2: WattProM2;
   /** Direktstrahlung senkrecht zur Sonnenrichtung (DNI), für die Fassadenprojektion. */
   direktstrahlungNormalWProM2: WattProM2;
@@ -166,7 +166,7 @@ export interface Wetterstunde {
   windboeeMProS: MeterProSekunde;
   /** Niederschlag der Stunde, Regen und Schnee zusammen als Wasserhöhe. */
   niederschlagMmProH: MillimeterProStunde;
-  /** Anteil des Niederschlags, der als Schnee fällt – in Zentimetern Neuschnee. */
+  /** Anteil des Niederschlags, der als Schnee fällt, in Zentimetern Neuschnee. */
   schneefallCm: number;
   /**
    * Wetterlage als WMO-Code, wie ihn die Wetter-API liefert. Gebraucht wird
@@ -177,7 +177,7 @@ export interface Wetterstunde {
 }
 
 /**
- * Ein selbst eingetragener schulfreier Zeitraum – Schulferien oder Betriebsferien.
+ * Ein selbst eingetragener schulfreier Zeitraum: Schulferien oder Betriebsferien.
  *
  * Die Schulferien sind in der Schweiz kantonal geregelt und ändern jedes Jahr;
  * sie werden deshalb nicht mitgeliefert, sondern vom Nutzer gepflegt.
@@ -255,7 +255,7 @@ export interface Empfehlung {
   begruendung: string;
   /**
    * Ergänzende Hinweise in fester Rangfolge, leer wenn keiner zutrifft.
-   * Die Oberfläche zeigt nicht zwingend alle – die Reihenfolge entscheidet.
+   * Die Oberfläche zeigt nicht zwingend alle, die Reihenfolge entscheidet.
    */
   zusatzhinweise: Hinweis[];
 }

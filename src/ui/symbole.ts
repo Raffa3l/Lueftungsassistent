@@ -39,7 +39,7 @@ export function symbolFensterOffen(): SVGSVGElement {
   return symbol(['M4 3h8v18H4z', 'M12 6l8-3v18l-8-3', 'M8 12h.01']);
 }
 
-/** Sonne – steht für die Aussentemperatur. */
+/** Sonne, steht für die Aussentemperatur. */
 export function symbolSonne(): SVGSVGElement {
   return symbol([
     'M12 5a7 7 0 1 0 0 14 7 7 0 0 0 0-14z',
@@ -47,17 +47,17 @@ export function symbolSonne(): SVGSVGElement {
   ]);
 }
 
-/** Thermometer – steht für die Raumtemperatur. */
+/** Thermometer, steht für die Raumtemperatur. */
 export function symbolThermometer(): SVGSVGElement {
   return symbol(['M14 14.8V4a2 2 0 1 0-4 0v10.8a4 4 0 1 0 4 0z', 'M12 8v7']);
 }
 
-/** Uhr – steht für den nächsten Wechsel. */
+/** Uhr, steht für den nächsten Wechsel. */
 export function symbolUhr(): SVGSVGElement {
   return symbol(['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M12 7v5l3 2']);
 }
 
-/** Luftströmung – steht für die Stosslüftung wegen der Luftqualität. */
+/** Luftströmung, steht für die Stosslüftung wegen der Luftqualität. */
 export function symbolLuft(): SVGSVGElement {
   return symbol([
     'M3 8h9a3 3 0 1 0-3-3',
@@ -66,27 +66,27 @@ export function symbolLuft(): SVGSVGElement {
   ]);
 }
 
-/** Mond – steht für die Nachtauskühlung. */
+/** Mond, steht für die Nachtauskühlung. */
 export function symbolMond(): SVGSVGElement {
   return symbol(['M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z']);
 }
 
-/** Tropfen – steht für Luftfeuchtigkeit und Kondensationsgefahr. */
+/** Tropfen, steht für Luftfeuchtigkeit und Kondensationsgefahr. */
 export function symbolTropfen(): SVGSVGElement {
   return symbol(['M12 3.5c3.5 4 6 7.1 6 10a6 6 0 0 1-12 0c0-2.9 2.5-6 6-10z']);
 }
 
-/** Böen – stehen für den Wind draussen, im Unterschied zur Raumluft. */
+/** Böen, stehen für den Wind draussen, im Unterschied zur Raumluft. */
 export function symbolWind(): SVGSVGElement {
   return symbol(['M2 9h13a3 3 0 1 0-3-3', 'M2 15h9a2.5 2.5 0 1 1-2.5 2.5']);
 }
 
-/** Rotor – steht für Luftbewegung im Raum (Ventilator). */
+/** Rotor, steht für Luftbewegung im Raum (Ventilator). */
 /**
  * Standventilator in Seitenansicht: Schutzkorb mit Nabe, darunter Säule und Fuss.
  *
- * Der Fuss ist der Grund für diese Form. Ein blosser Kreis mit Speichen –
- * naheliegend als Propeller gedacht – liest sich als Markenzeichen eines
+ * Der Fuss ist der Grund für diese Form. Ein blosser Kreis mit Speichen,
+ * naheliegend als Propeller gedacht, liest sich als Markenzeichen eines
  * Autoherstellers, und gebogene Flügel verschmieren bei den 14 Pixeln, mit
  * denen das Symbol in der Stundentabelle steht. Die Silhouette aus Kreis und
  * Standfuss bleibt auch dort eindeutig ein Gerät.
@@ -100,12 +100,12 @@ export function symbolVentilator(): SVGSVGElement {
   ]);
 }
 
-/** Warndreieck – steht für drohenden Sturm- oder Wasserschaden. */
+/** Warndreieck, steht für drohenden Sturm- oder Wasserschaden. */
 export function symbolWarnung(): SVGSVGElement {
   return symbol(['M12 3.5 22 20.5H2z', 'M12 10v4.5', 'M12 17.5h.01']);
 }
 
-/** Fragezeichen im Kreis – öffnet die Erklärung zur Physik dahinter. */
+/** Fragezeichen im Kreis, öffnet die Erklärung zur Physik dahinter. */
 export function symbolInfo(): SVGSVGElement {
   return symbol([
     'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
