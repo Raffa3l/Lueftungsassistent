@@ -93,6 +93,27 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !zustand.laedt) void ladeUndZeichne();
 });
 
+/*
+ * Einstellungen fürs Papier aufklappen und danach zurückstellen.
+ *
+ * Auf dem Ausdruck erklären sie, wofür gerechnet wurde – eingeklappt fehlte
+ * genau diese Angabe. Das lässt sich nicht in CSS lösen: Ein geschlossenes
+ * `details` blendet seinen Inhalt browserintern aus, nicht über eine Regel, die
+ * sich im Druckkontext überschreiben liesse.
+ */
+const einstellungenKlappe = document.querySelector('.klappe') as HTMLDetailsElement | null;
+let klappeWarOffen = false;
+
+window.addEventListener('beforeprint', () => {
+  if (!einstellungenKlappe) return;
+  klappeWarOffen = einstellungenKlappe.open;
+  einstellungenKlappe.open = true;
+});
+
+window.addEventListener('afterprint', () => {
+  if (einstellungenKlappe) einstellungenKlappe.open = klappeWarOffen;
+});
+
 /** Wetterdaten für den gewählten Standort holen und danach neu zeichnen. */
 async function ladeUndZeichne(): Promise<void> {
   const station = findeStation(zustand.einstellungen.stationId) ?? findeStation(STANDARD_EINSTELLUNGEN.stationId)!;
@@ -187,6 +208,9 @@ function zeigeFehler(fehler: unknown): void {
   if (zustand.wetter.length === 0) {
     leere(empfehlungInhalt);
     empfehlungInhalt.append(el('p', { class: 'platzhalter' }, [text]));
+    // Ohne Daten wird nie gezeichnet – die Platzhalter stünden sonst dauerhaft
+    // da und behaupteten, es werde noch geladen.
+    entferneSkelette();
   }
 
   entferneMeldung();
@@ -204,6 +228,11 @@ function zeigeFehler(fehler: unknown): void {
 
 function entferneMeldung(): void {
   document.getElementById('fehlermeldung')?.remove();
+}
+
+/** Platzhalterflächen entfernen, die auf Inhalt warten, der nicht mehr kommt. */
+function entferneSkelette(): void {
+  for (const skelett of document.querySelectorAll('.skelett')) skelett.remove();
 }
 
 function pflichtElement(id: string): HTMLElement {

@@ -1,6 +1,6 @@
 import type { SimulationsStunde, Wetterstation } from '../typen.ts';
 import { findeNaechstenWechsel } from '../logik/lueftungslogik.ts';
-import { celsius } from '../einheiten.ts';
+import { celsius, temperaturDifferenz } from '../einheiten.ts';
 import { formatiereTemperatur, formatiereZeitpunkt } from '../logik/format.ts';
 import { el, leere } from './dom.ts';
 import { symbolFuerHinweis, symbolFuerStatus, symbolSonne, symbolThermometer, symbolUhr } from './symbole.ts';
@@ -137,7 +137,7 @@ function tagesspanne(stunden: readonly SimulationsStunde[], jetztIndex: number):
 
 /** Wie viel das empfohlene Lüften gegenüber «nie lüften» bringt. */
 function vergleichshinweis(jetzt: SimulationsStunde): string {
-  const ersparnisK = jetzt.raumtemperaturOhneLueftungC - jetzt.raumtemperaturC;
+  const ersparnisK = temperaturDifferenz(jetzt.raumtemperaturC, jetzt.raumtemperaturOhneLueftungC);
   if (ersparnisK < 0.3) return 'Modellwert für den Gebäudetyp';
   return `${ersparnisK.toFixed(1)} Grad kühler als ohne Lüften`;
 }

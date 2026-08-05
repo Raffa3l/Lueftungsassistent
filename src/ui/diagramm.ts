@@ -3,6 +3,7 @@ import { fasseStatusbloeckeZusammen } from '../logik/lueftungslogik.ts';
 import { celsius } from '../einheiten.ts';
 import { formatiereTemperatur, formatiereUhrzeit } from '../logik/format.ts';
 import { el, leere, svgEl } from './dom.ts';
+import { symbolWarnung } from './symbole.ts';
 import { glatterPfad } from './kurve.ts';
 import { infofeld } from './infofeld.ts';
 import { INFO } from './infotexte.ts';
@@ -39,7 +40,10 @@ export class Temperaturdiagramm {
   private readonly hinweisfeld: HTMLElement;
 
   constructor(private readonly behaelter: HTMLElement) {
-    leere(behaelter);
+    // Bewusst ohne `leere`: Im Behälter steht ein Platzhalter, der die Höhe des
+    // Diagramms freihält, bis die Wetterdaten eintreffen. Er verschwindet erst,
+    // wenn tatsächlich gezeichnet wird – sonst fiele die Karte in sich zusammen
+    // und die Seite spränge doppelt.
     this.flaeche = el('div');
     this.hinweisfeld = el('div', { class: 'diagramm__hinweisfeld', 'data-sichtbar': 'false' });
     behaelter.append(this.flaeche, this.hinweisfeld);
@@ -87,6 +91,7 @@ export class Temperaturdiagramm {
 
     svg.append(
       ...lueftungsfenster(stunden, x, zeichenHoehe),
+      ...warnstreifen(stunden, x, zeichenHoehe),
       ...rasterlinien(bereich, y, zeichenBreite),
       // Auf schmalen Geräten nur alle 12 Stunden beschriften, sonst überlappt es.
       ...zeitachse(stunden, x, hoehe, zeichenBreite / stunden.length < 7 ? 12 : 6),
@@ -134,6 +139,8 @@ export class Temperaturdiagramm {
     ]);
     svg.append(fadenkreuz);
 
+    // Jetzt steht etwas Richtiges da – der Platzhalter hat seine Aufgabe erfüllt.
+    this.behaelter.querySelector('.skelett')?.remove();
     leere(this.flaeche);
     this.flaeche.append(svg);
     this.verbindeZeiger(svg, ausschnitt, x, y, fadenkreuz, zeichenBreite);
@@ -192,6 +199,18 @@ export class Temperaturdiagramm {
         stunde.empfehlung.status === 'oeffnen' ? 'Fenster offen' : 'Fenster zu',
       ]),
     );
+
+    // Die Warnung nennt der Streifen im Diagramm nur als Farbe – hier steht,
+    // wovor gewarnt wird.
+    const warnung = stunde.empfehlung.zusatzhinweise.find((h) => h.art === 'wetterschutz');
+    if (warnung) {
+      this.hinweisfeld.append(
+        el('div', { class: 'hinweisfeld__zeile hinweisfeld__zeile--warnung' }, [
+          symbolWarnung(),
+          warnung.kuerzel,
+        ]),
+      );
+    }
 
     this.hinweisfeld.dataset['sichtbar'] = 'true';
 
@@ -254,6 +273,55 @@ function lueftungsfenster(
         style: 'fill: var(--status-offen-flaeche)',
       });
     });
+}
+
+/**
+ * Warnstreifen am Fuss der Zeichenfläche: Stunden mit drohendem Sturm- oder
+ * Wasserschaden.
+ *
+ * Bewusst ein schmales Band unten und keine Einfärbung der ganzen Spalte – die
+ * grüne Fläche zeigt bereits, wann Lüften sich lohnt, und beides übereinander
+ * ergäbe eine Farbmischung, die keine der beiden Aussagen mehr trägt. Der
+ * Streifen liegt dort, wo die Warnung hingehört: unter den Stunden, für die
+ * sie gilt.
+ *
+ * Die Bedeutung hängt nicht an der Farbe allein: Legende, Hinweisfeld und
+ * Stundentabelle nennen sie zusätzlich als Wort.
+ */
+function warnstreifen(
+  stunden: readonly SimulationsStunde[],
+  x: (index: number) => number,
+  zeichenHoehe: number,
+): SVGElement[] {
+  const HOEHE = 5;
+  const streifen: SVGElement[] = [];
+  let start: number | undefined;
+
+  const abschliessen = (endeIndex: number): void => {
+    if (start === undefined) return;
+    const von = x(Math.max(0, start - 0.5));
+    const bis = x(Math.min(stunden.length - 1, endeIndex - 0.5));
+    streifen.push(
+      svgEl('rect', {
+        x: von,
+        y: RAND.oben + zeichenHoehe - HOEHE,
+        width: Math.max(1, bis - von),
+        height: HOEHE,
+        rx: 1,
+        style: 'fill: var(--warnung)',
+      }),
+    );
+    start = undefined;
+  };
+
+  for (const [index, stunde] of stunden.entries()) {
+    const gewarnt = stunde.empfehlung.zusatzhinweise.some((h) => h.art === 'wetterschutz');
+    if (gewarnt && start === undefined) start = index;
+    if (!gewarnt) abschliessen(index);
+  }
+  abschliessen(stunden.length);
+
+  return streifen;
 }
 
 function rasterlinien(
@@ -427,10 +495,22 @@ function hinweiszeile(bezeichnung: string, wert: string, farbe: string): HTMLEle
 function beschreibeDiagramm(stunden: readonly SimulationsStunde[]): string {
   const aussen = stunden.map((s) => s.aussentemperaturC);
   const innen = stunden.map((s) => s.raumtemperaturC);
+
+  // Der Warnstreifen erscheint sonst nur als Farbe; hier bekommt er Worte.
+  const gewarnt = stunden.filter((s) =>
+    s.empfehlung.zusatzhinweise.some((h) => h.art === 'wetterschutz'),
+  );
+  const warnung =
+    gewarnt.length === 0
+      ? ''
+      : `${gewarnt.length === 1 ? 'In einer Stunde' : `In ${gewarnt.length} Stunden`} ist bei ` +
+        'offenem Fenster mit Sturm, Regen oder Gewitter zu rechnen. ';
+
   return (
     `Temperaturverlauf über ${stunden.length} Stunden. ` +
     `Draussen zwischen ${formatiereTemperatur(celsius(Math.min(...aussen)), 0)} und ${formatiereTemperatur(celsius(Math.max(...aussen)), 0)}, ` +
     `drinnen zwischen ${formatiereTemperatur(celsius(Math.min(...innen)), 0)} und ${formatiereTemperatur(celsius(Math.max(...innen)), 0)}. ` +
+    warnung +
     'Die Einzelwerte stehen in der Tabelle «Stunde für Stunde».'
   );
 }
@@ -445,6 +525,10 @@ export function baueLegende(behaelter: HTMLElement): void {
     el('span', { class: 'legende__eintrag' }, [
       el('span', { class: 'marke marke--flaeche' }),
       'Lüften empfohlen',
+    ]),
+    el('span', { class: 'legende__eintrag' }, [
+      el('span', { class: 'marke marke--warnung' }),
+      'Sturm, Regen oder Gewitter',
     ]),
   );
 }

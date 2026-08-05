@@ -272,6 +272,30 @@ main {
   color: var(--schrift-sekundaer);
 }
 
+/* ---------- Platzhalter während des Ladens ---------- *
+ *
+ * Sie halten die Fläche frei, die der Inhalt gleich einnimmt, damit die Seite
+ * beim Eintreffen der Daten nicht springt. Bewusst ohne Animation: Ein
+ * pulsierendes Rechteck zieht Aufmerksamkeit auf das Warten statt auf den
+ * Inhalt und ist bei kurzen Ladezeiten nur Unruhe.
+ */
+.skelett {
+  border-radius: 8px;
+  background: var(--linie-raster);
+  opacity: 0.5;
+}
+
+.skelett--diagramm {
+  /* Entspricht der Formel für die Diagrammhöhe: halbe Breite, gedeckelt. */
+  height: clamp(220px, 50vw, 320px);
+}
+
+/* Nachgemessen: Beschriftung 31 px, Kopfzeile 37 px, dazu 25 Zeilen à 39 px –
+   24 Stunden und ein Tagtrenner. Ergibt rund 65 rem. */
+.skelett--tabelle {
+  height: 65rem;
+}
+
 /* ---------- Empfehlungskarte ---------- */
 
 .karte--empfehlung {
@@ -362,13 +386,23 @@ main {
   font-size: 0.9375rem;
 }
 
+/* Drei Kacheln nebeneinander oder drei untereinander – nichts dazwischen.
+   Ein automatisch umbrechendes Raster ergab auf Handybreiten zwei Spalten und
+   liess die dritte Kachel allein in einer zweiten Zeile stehen. */
 .kennzahlen {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.75rem;
   margin: 1.25rem 0 0;
   padding: 0;
   list-style: none;
+}
+
+/* Ab hier tragen drei Spalten «Drinnen (berechnet)» samt Fragezeichen. */
+@media (min-width: 34rem) {
+  .kennzahlen {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .kennzahl {
@@ -426,6 +460,13 @@ main {
   border-radius: 3px;
   background: var(--status-offen-flaeche);
   border: 1px solid var(--status-offen);
+}
+
+/* Entspricht dem Warnstreifen am Fuss der Zeichenfläche. */
+.marke--warnung {
+  height: 0.3rem;
+  border-radius: 2px;
+  background: var(--warnung);
 }
 
 /* ---------- Formular ---------- */
@@ -950,6 +991,17 @@ button[disabled] {
   font-weight: 600;
 }
 
+.hinweisfeld__zeile--warnung {
+  color: var(--warnung);
+  font-weight: 600;
+}
+
+.hinweisfeld__zeile--warnung svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+}
+
 .legende {
   display: flex;
   flex-wrap: wrap;
@@ -1150,5 +1202,128 @@ tr:has(+ tr[data-wechsel]) > * {
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Druck ---------- *
+ *
+ * Gedacht für den Aushang im Lehrerzimmer und die Beilage zum Rapport: Wer den
+ * Tagesverlauf ausdruckt oder als PDF weitergibt, soll ein lesbares Blatt
+ * bekommen und nicht die Bildschirmoberfläche auf Papier.
+ *
+ * Die Farbrollen werden auf helle Werte gezwungen, weil sonst im Dunkelmodus
+ * schwarze Flächen gedruckt würden. Die Serienfarben bleiben, damit das
+ * Diagramm seine Zuordnung behält – Legende und Direktbeschriftung tragen sie
+ * ohnehin zusätzlich als Text.
+ */
+@media print {
+  :root {
+    color-scheme: light;
+
+    --flaeche-seite: #ffffff;
+    --flaeche-karte: #ffffff;
+    --schrift-primaer: #000000;
+    --schrift-sekundaer: #333333;
+    --schrift-gedaempft: #555555;
+    --linie-raster: #cccccc;
+    --linie-achse: #888888;
+    --rand: #999999;
+    --schatten: none;
+  }
+
+  .seite {
+    max-width: none;
+    padding: 0;
+  }
+
+  main {
+    gap: 0.6rem;
+  }
+
+  .karte {
+    border: 1px solid var(--rand);
+    box-shadow: none;
+    padding: 0.8rem;
+    /* Kurze Karten sollen nicht über den Seitenumbruch zerrissen werden. */
+    break-inside: avoid;
+  }
+
+  /* Die Stundentabelle ist höher als eine Druckseite – mit «avoid» rutschte sie
+     komplett auf ein neues Blatt und liesse das vorige halb leer. Sie darf
+     umbrechen; dass keine Zeile zerrissen wird, regelt `tr` weiter unten. */
+  .karte--tabelle {
+    break-inside: auto;
+  }
+
+  /* Bedienelemente ergeben auf Papier keinen Sinn. */
+  .sprunglink,
+  .klappe__pfeil,
+  .karte__werkzeuge,
+  .knopfreihe,
+  .infofeld,
+  .feld__vorschlag,
+  .stepper__knopf,
+  .diagramm__hinweisfeld {
+    display: none;
+  }
+
+  /* Die Einstellungen gehören aufs Blatt – sie erklären, wofür gerechnet wurde.
+     Das Aufklappen selbst besorgt `main.ts` vor dem Druck. */
+  .klappe__inhalt {
+    border-top: 1px solid var(--rand);
+  }
+
+  /* Auswahlfelder als schlichter Text statt als Bedienelement. */
+  select,
+  input[type='number'],
+  input[type='text'],
+  input[type='date'] {
+    border: 0;
+    padding: 0;
+    min-height: 0;
+    background: none;
+    font-weight: 600;
+    appearance: none;
+  }
+
+  select {
+    background-image: none;
+    padding-right: 0;
+  }
+
+  /* Ohne die Schrittknöpfe daneben stünde die Zahl sonst eingerückt in der
+     Mitte ihres früheren Feldes. */
+  .stepper input[type='number'] {
+    text-align: start;
+  }
+
+  /* Die Tabelle darf umbrechen, aber nicht mitten in einer Zeile. */
+  .tabelle-huelle {
+    overflow-x: visible;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group; /* Kopfzeile auf jeder Seite wiederholen */
+  }
+
+  thead th {
+    position: static; /* «sticky» ergibt auf Papier nichts */
+    box-shadow: none;
+    border-bottom: 1px solid var(--linie-achse);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  /* Die Quellenangabe im Fuss bleibt – sie sagt, woher die Zahlen stammen. */
+  .fuss {
+    break-inside: avoid;
+    font-size: 0.75rem;
   }
 }

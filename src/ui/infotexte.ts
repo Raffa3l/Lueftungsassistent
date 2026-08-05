@@ -168,7 +168,12 @@ export const INFO_HINWEIS: Record<Hinweisart, { thema: string; text: string }> =
     text:
       'Bewegte Luft kühlt den Menschen, nicht den Raum: Sie beschleunigt die ' +
       'Verdunstung auf der Haut und senkt das Temperaturempfinden um zwei bis drei ' +
-      'Grad. Erst wenn die Luft wärmer wird als die Haut und dabei trocken ist, ' +
-      'kehrt sich der Nutzen um.',
+      'Grad. Der Hinweis erscheint erst ab 26 Grad – darunter wird derselbe Luftzug ' +
+      'als Zugluft empfunden, weshalb EN 16798-1 höhere Luftgeschwindigkeiten auch ' +
+      'erst oberhalb dieser Marke zulässt. Nach oben kehrt sich der Nutzen um, wenn ' +
+      'die Luft wärmer wird als die Haut und dabei trocken ist. Der Ventilator selbst ' +
+      'gibt seine ganze Leistung als Wärme ab: rund 50 Watt erwärmen ein Zimmer von ' +
+      '20 Quadratmetern um etwa 0.3 Grad je Arbeitstag – wenig gegen die gefühlten ' +
+      'zwei bis drei Grad, aber ein Grund, ihn im leeren Raum abzustellen.',
   },
 };

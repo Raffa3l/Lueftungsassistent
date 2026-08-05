@@ -138,19 +138,31 @@ function geschlossen(
 }
 
 /**
- * Rangfolge der Hinweisarten: Was die Gesundheit betrifft, steht vorn, danach
- * folgt die Bauphysik, zuletzt das Komfortliche.
+ * Rangfolge der Hinweisarten: Zuerst, was Schaden abwendet, dann was die
+ * Gesundheit betrifft, danach die Bauphysik, zuletzt das Komfortliche.
  *
  * Die Reihenfolge ist eine fachliche Festlegung und gehört deshalb hierhin und
  * nicht in die Oberfläche – die entscheidet nur noch, wie viele Hinweise sie
- * davon zeigt.
+ * davon zeigt. Weil sie nur die ersten beiden zeigt (`ui/dashboard.ts`), ist
+ * der erste Platz nicht kosmetisch: Was hier nach hinten rutscht, verschwindet
+ * dort ganz.
+ *
+ * Als `Record` über alle Hinweisarten geführt, nicht als Liste: So ist eine
+ * fehlende Art ein Übersetzungsfehler. Als Liste rutschte eine vergessene Art
+ * über `indexOf` mit −1 stillschweigend an den Anfang – richtig für den
+ * Wetterschutz, aber aus dem falschen Grund und beim nächsten «Aufräumen»
+ * wieder verloren.
  */
-const HINWEIS_RANGFOLGE: readonly Hinweisart[] = ['luftqualitaet', 'feuchte', 'kuehlung', 'wind'];
+const HINWEIS_RANG: Record<Hinweisart, number> = {
+  wetterschutz: 0,
+  luftqualitaet: 1,
+  feuchte: 2,
+  kuehlung: 3,
+  wind: 4,
+};
 
 function ordneHinweise(hinweise: readonly Hinweis[]): Hinweis[] {
-  return [...hinweise].sort(
-    (a, b) => HINWEIS_RANGFOLGE.indexOf(a.art) - HINWEIS_RANGFOLGE.indexOf(b.art),
-  );
+  return [...hinweise].sort((a, b) => HINWEIS_RANG[a.art] - HINWEIS_RANG[b.art]);
 }
 
 /* ------------------------------------------------------------------ *
@@ -172,6 +184,22 @@ const VENTILATOR_GRENZE_C = celsius(35);
 /** Unterhalb dieser relativen Raumfeuchte gilt die Hitze als trocken. */
 const VENTILATOR_TROCKEN_PROZENT = 40;
 
+/**
+ * Ab dieser Raumtemperatur wird Luftbewegung als angenehm empfunden – darunter
+ * stört sie als Zugluft.
+ *
+ * EN 16798-1 setzt für den Sommer 0.2 m/s bei höchstens 26 °C an und lässt
+ * höhere Geschwindigkeiten ausdrücklich erst **über 26 °C** zu, sofern die
+ * Person den Luftstrom selbst beeinflussen kann – genau das trifft auf einen
+ * Ventilator zu. Unterhalb davon steigt das Zugluftrisiko nach ISO 7730, je
+ * kühler es ist.
+ *
+ * Bewusst nicht an die Wunschtemperatur gekoppelt: Die sagt, ab wann sich
+ * Kühlen lohnt, nicht ab wann bewegte Luft guttut. Bei der Voreinstellung von
+ * 24 °C käme der Hinweis sonst zwei Grad zu früh.
+ */
+const VENTILATOR_AB_C = celsius(26);
+
 function hinweiseBeiGeschlossenenFenstern(eingabe: BewertungsEingabe): Hinweis[] {
   const hinweise: Hinweis[] = [];
   if (eingabe.raumBelegt !== true) return hinweise;
@@ -181,8 +209,13 @@ function hinweiseBeiGeschlossenenFenstern(eingabe: BewertungsEingabe): Hinweis[]
   if (eingabe.stosslueftungNoetig === true) hinweise.push(STOSSLUEFTUNG);
 
   // Wenn die Fenster zu bleiben müssen, ist Luftbewegung im Raum das einzige
-  // verbleibende Mittel – und ein wirksames.
-  if (eingabe.raumtemperaturC > eingabe.einstellungen.zielTemperaturC) {
+  // verbleibende Mittel – und ein wirksames. Beide Bedingungen müssen erfüllt
+  // sein: Es muss dem Nutzer zu warm sein *und* warm genug, dass bewegte Luft
+  // erfrischt statt zu ziehen.
+  if (
+    eingabe.raumtemperaturC > eingabe.einstellungen.zielTemperaturC &&
+    eingabe.raumtemperaturC >= VENTILATOR_AB_C
+  ) {
     hinweise.push(kuehlungshinweis(eingabe));
   }
 
@@ -217,7 +250,8 @@ const VENTILATOR: Hinweis = {
   kuerzel: 'Ventilator',
   text:
     'Luftbewegung hilft auch bei geschlossenen Fenstern: Ein Ventilator senkt das ' +
-    'Temperaturempfinden um rund zwei bis drei Grad, ohne Wärme hereinzulassen.',
+    'Temperaturempfinden um rund zwei bis drei Grad. Er kühlt den Menschen, nicht ' +
+    'den Raum – im leeren Zimmer heizt er nur, also beim Hinausgehen abstellen.',
 };
 
 const TROCKENE_HITZE: Hinweis = {
@@ -294,8 +328,13 @@ const STURM_AB_M_PRO_S = 17;
  */
 const REGEN_AB_MM_PRO_H = 0.5;
 
-/** WMO-Wettercodes für Gewitter, mit und ohne Hagel. */
-const GEWITTER_CODES = new Set([95, 96, 99]);
+/**
+ * WMO-Wettercodes für Gewitter: 95 leicht bis mässig, 97 schwer, 96 und 99 mit
+ * Hagel. Open-Meteo liefert derzeit nur 95, 96 und 99 – 97 steht trotzdem hier,
+ * damit das schwerste Gewitter nicht durchrutscht, falls das Modell es doch
+ * einmal meldet.
+ */
+const GEWITTER_CODES = new Set([95, 96, 97, 99]);
 
 /**
  * Der dringlichste Wetterschutzhinweis für diese Stunde, sonst `undefined`.

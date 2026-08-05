@@ -275,8 +275,51 @@ describe('bewerteStunde – Kühlungshinweis bei geschlossenen Fenstern', () => 
     expect(arten(empfehlung)).not.toContain('kuehlung');
   });
 
+  it('schweigt zwischen Wunschtemperatur und 26 Grad – dort zieht es nur', () => {
+    // 25 Grad liegt über der Wunschtemperatur von 24, aber unter der Schwelle,
+    // ab der EN 16798-1 erhöhte Luftgeschwindigkeiten überhaupt zulässt.
+    const empfehlung = bewerteStunde({
+      ...hitze,
+      raumtemperaturC: celsius(25),
+      raumBelegt: true,
+    });
+
+    expect(arten(empfehlung)).not.toContain('kuehlung');
+  });
+
+  it('meldet sich, sobald 26 Grad erreicht sind', () => {
+    const empfehlung = bewerteStunde({
+      ...hitze,
+      raumtemperaturC: celsius(26),
+      raumBelegt: true,
+    });
+
+    expect(arten(empfehlung)).toContain('kuehlung');
+  });
+
+  it('schweigt trotz 26 Grad, wenn die Wunschtemperatur höher gesetzt ist', () => {
+    // Beide Bedingungen müssen erfüllt sein: warm genug für bewegte Luft *und*
+    // wärmer, als es dem Nutzer lieb ist.
+    const empfehlung = bewerteStunde({
+      ...hitze,
+      raumtemperaturC: celsius(26),
+      einstellungen: testEinstellungen({ zielTemperaturC: celsius(27) }),
+      raumBelegt: true,
+    });
+
+    expect(arten(empfehlung)).not.toContain('kuehlung');
+  });
+
   it('schweigt im leeren Raum – der Hinweis richtet sich an Menschen', () => {
     expect(arten(bewerteStunde({ ...hitze, raumBelegt: false }))).not.toContain('kuehlung');
+  });
+
+  it('sagt dazu, dass der Ventilator im leeren Raum nur heizt', () => {
+    // Er wandelt seine ganze Leistung in Wärme – das gehört zur ehrlichen
+    // Darstellung, auch wenn es gegen die gefühlte Abkühlung wenig wiegt.
+    const empfehlung = bewerteStunde({ ...hitze, raumBelegt: true });
+
+    expect(empfehlung.zusatzhinweise[0]?.text).toContain('abstellen');
   });
 
   it('rät bei trockener Extremhitze zum Trinken statt zum Ventilator', () => {

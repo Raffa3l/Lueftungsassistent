@@ -92,12 +92,12 @@ export function symbolVentilator(): SVGSVGElement {
   ]);
 }
 
-/** Fragezeichen im Kreis – öffnet die Erklärung zur Physik dahinter. */
 /** Warndreieck – steht für drohenden Sturm- oder Wasserschaden. */
 export function symbolWarnung(): SVGSVGElement {
   return symbol(['M12 3.5 22 20.5H2z', 'M12 10v4.5', 'M12 17.5h.01']);
 }
 
+/** Fragezeichen im Kreis – öffnet die Erklärung zur Physik dahinter. */
 export function symbolInfo(): SVGSVGElement {
   return symbol([
     'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',

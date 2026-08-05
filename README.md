@@ -98,8 +98,10 @@ Nutzung ineinander: Eine Schulklasse mit 35 W/m² treibt die Temperatur im
 Leichtbau um knapp 0.9 Grad pro Stunde hoch, im schweren Altbau nur um 0.4.
 
 Daraus ergeben sich Dämpfung und Verzögerung der Tageswelle von selbst: Ein
-Altbau nimmt rund 13 % der Aussenschwankung auf und hinkt ihr etwa 6 Stunden
-hinterher, ein Dachgeschoss fast 50 % bei gut 3 Stunden.
+Altbau nimmt rund 13 % der Aussenschwankung auf und hinkt ihr etwa 5.5 Stunden
+hinterher, ein Dachgeschoss fast 50 % bei gut 4 Stunden. Die Bauarten
+unterscheiden sich also vor allem in der Dämpfung – die Verzögerung kann bei
+einem solchen Modell sechs Stunden nie überschreiten.
 
 Die Simulation läuft sieben Tage vor dem aktuellen Zeitpunkt an, damit der
 Startwert kaum noch durchschlägt. Dieselben Vortage speisen den Vorschlag für

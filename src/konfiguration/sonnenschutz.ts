@@ -55,7 +55,7 @@ export const SONNENSCHUTZ_ARTEN: readonly Sonnenschutz[] = [
     kurzname: 'Sonnenschutz aussen',
     faktor: 0.25,
     beschreibung:
-      'Die Wärme bleibt draussen – viermal wirksamer als ein Vorhang und der stärkste Hebel überhaupt.',
+      'Die Wärme bleibt draussen – viermal weniger Eintrag als ohne Schutz und der stärkste Hebel überhaupt.',
   },
 ];
 

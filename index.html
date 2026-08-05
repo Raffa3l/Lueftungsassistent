@@ -11,6 +11,16 @@
     <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
     <title>Lüftungsassistent – wann Fenster schliessen?</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🪟</text></svg>" />
+    <!--
+      Zum Home-Bildschirm hinzufügen. Alle Pfade relativ, passend zu
+      `base: './'` in der Vite-Konfiguration – so läuft die App auch in einem
+      Unterverzeichnis, wie es GitHub Pages anlegt.
+      Bewusst ohne Service Worker: Ohne frische Wetterdaten hat die App nichts
+      Sinnvolles zu zeigen, ein Offline-Cache brächte also wenig und handelte
+      sich Aktualisierungsprobleme ein.
+    -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./symbol-192.png" />
   </head>
   <body>
     <a class="sprunglink" href="#empfehlung">Direkt zur Empfehlung</a>
@@ -62,15 +72,25 @@
             <div id="diagramm-schalter" class="karte__werkzeuge"></div>
           </div>
           <figure class="diagramm-figur">
-            <div id="diagramm" class="diagramm"></div>
+            <!--
+              Platzhalter in der Höhe des späteren Diagramms. Ohne ihn wächst
+              die Karte beim Eintreffen der Daten von null auf volle Höhe und
+              schiebt alles darunter weg – genau dann, wenn jemand zu lesen
+              beginnt. Wird beim ersten Zeichnen ersetzt.
+            -->
+            <div id="diagramm" class="diagramm">
+              <div class="skelett skelett--diagramm" aria-hidden="true"></div>
+            </div>
             <figcaption id="diagramm-legende" class="legende"></figcaption>
           </figure>
         </section>
 
         <!-- Stundenübersicht -->
-        <section class="karte" aria-labelledby="stunden-titel">
+        <section class="karte karte--tabelle" aria-labelledby="stunden-titel">
           <h2 id="stunden-titel">Stunde für Stunde</h2>
-          <div id="stundentabelle" class="tabelle-huelle"></div>
+          <div id="stundentabelle" class="tabelle-huelle">
+            <div class="skelett skelett--tabelle" aria-hidden="true"></div>
+          </div>
         </section>
       </main>
 

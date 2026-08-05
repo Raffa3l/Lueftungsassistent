@@ -35,8 +35,13 @@ import { celsius, stunden, wattProM2, whProM2K } from '../einheiten.ts';
  * nachjustiert werden können. Als Orientierung dienen die daraus abgeleiteten
  * Kenngrössen Amplitudendämpfung und Phasenverschiebung (vgl. `thermischesModell.ts`):
  *
- *   Altbau Massivbau   ~0.13 Dämpfung, ~5.9 h Verzögerung
- *   Dachgeschoss       ~0.48 Dämpfung, ~3.4 h Verzögerung
+ *   Altbau Massivbau   ~0.13 Dämpfung, ~5.5 h Verzögerung
+ *   Dachgeschoss       ~0.48 Dämpfung, ~4.1 h Verzögerung
+ *
+ * Die Verzögerung streut weniger, als man erwarten würde: Ein einpoliges
+ * RC-Glied kann die Tageswelle höchstens um eine Viertelperiode verschieben,
+ * also um 6 Stunden. Über alle Bauarten liegen deshalb nur 4.1 bis 5.5 Stunden
+ * dazwischen – unterscheiden tun sie sich vor allem in der Dämpfung.
  */
 export const GEBAEUDETYPEN: readonly Gebaeudetyp[] = [
   {

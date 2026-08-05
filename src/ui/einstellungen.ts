@@ -3,6 +3,7 @@ import { celsius, kelvin, type Celsius } from '../einheiten.ts';
 import { formatiereTemperatur } from '../logik/format.ts';
 import { datumsSchluessel } from '../konfiguration/feiertage.ts';
 import { erzeugeId } from '../dienste/speicher.ts';
+import { jetztInStationszeit } from '../dienste/wetterdienst.ts';
 import { GEBAEUDETYPEN, findeGebaeudetyp } from '../konfiguration/gebaeudetypen.ts';
 import { RAUMTYPEN, findeRaumtyp } from '../konfiguration/raumtypen.ts';
 import { STATIONEN, findeStation } from '../konfiguration/stationen.ts';
@@ -298,7 +299,7 @@ export function baueEinstellungsformular(
    * Zeichnet die Liste nur neu, wenn sich ihre Zusammensetzung ändert.
    * Beim Tippen in einem Feld bleibt der Fokus dadurch erhalten.
    */
-  let letzteZusammensetzung = ' ';
+  let letzteZusammensetzung = ' ';
   const zeigeFerien = (neue: Ferienzeitraum[]): void => {
     ferien = neue;
     ferienHinzufuegen.toggleAttribute('disabled', neue.length >= MAX_FERIENZEITRAEUME);
@@ -488,9 +489,15 @@ function zeigeRaumInfo(
   }
 }
 
-/** Neuer Zeitraum: ab heute für eine Woche – die häufigste Eingabe. */
+/**
+ * Neuer Zeitraum: ab heute für eine Woche – die häufigste Eingabe.
+ *
+ * «Heute» ist der Schweizer Kalendertag, nicht der des Geräts: Die Ferientage
+ * werden später gegen Zeitstempel in Stationszeit geprüft. Auf einem Gerät in
+ * einer östlicheren Zeitzone begänne der Zeitraum abends sonst einen Tag zu spät.
+ */
 function neuerZeitraum(): Ferienzeitraum {
-  const heute = new Date();
+  const heute = jetztInStationszeit();
   const inEinerWoche = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() + 6);
 
   return {

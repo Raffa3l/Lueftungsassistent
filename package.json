@@ -1,7 +1,7 @@
 {
   "name": "lueftungsassistent",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.7.0",
   "type": "module",
   "description": "Lüftungsassistent – zeigt, wann im Sommer die Fenster geschlossen bleiben sollten",
   "scripts": {
