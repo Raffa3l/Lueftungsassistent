@@ -1,5 +1,5 @@
 import type { Wetterstation, Wetterstunde } from '../typen.ts';
-import { celsius, meterProSekunde, wattProM2 } from '../einheiten.ts';
+import { celsius, meterProSekunde, millimeterProStunde, wattProM2 } from '../einheiten.ts';
 import { VORLAUF_TAGE } from '../konfiguration/standardwerte.ts';
 import { taupunktAusFeuchte } from '../logik/feuchte.ts';
 
@@ -67,6 +67,10 @@ interface OpenMeteoAntwort {
     direct_normal_irradiance?: (number | null)[];
     diffuse_radiation?: (number | null)[];
     wind_speed_10m?: (number | null)[];
+    wind_gusts_10m?: (number | null)[];
+    precipitation?: (number | null)[];
+    snowfall?: (number | null)[];
+    weather_code?: (number | null)[];
   };
   error?: boolean;
   reason?: string;
@@ -87,7 +91,10 @@ export async function ladeWetterdaten(
   url.searchParams.set(
     'hourly',
     'temperature_2m,relative_humidity_2m,dew_point_2m,shortwave_radiation,' +
-      'direct_normal_irradiance,diffuse_radiation,wind_speed_10m',
+      'direct_normal_irradiance,diffuse_radiation,wind_speed_10m,' +
+      // Für die Warnhinweise bei offenem Fenster: Böen schlagen Flügel zu,
+      // Niederschlag nässt Fensterbrett und Boden.
+      'wind_gusts_10m,precipitation,snowfall,weather_code',
   );
   // Open-Meteo liefert den Wind sonst in km/h.
   url.searchParams.set('wind_speed_unit', 'ms');
@@ -135,6 +142,10 @@ export function wandleAntwortUm(daten: OpenMeteoAntwort): Wetterstunde[] {
   const direkte = daten.hourly?.direct_normal_irradiance ?? [];
   const diffuse = daten.hourly?.diffuse_radiation ?? [];
   const winde = daten.hourly?.wind_speed_10m ?? [];
+  const boeen = daten.hourly?.wind_gusts_10m ?? [];
+  const niederschlaege = daten.hourly?.precipitation ?? [];
+  const schneefaelle = daten.hourly?.snowfall ?? [];
+  const wettercodes = daten.hourly?.weather_code ?? [];
 
   const stunden: Wetterstunde[] = [];
   for (let i = 0; i < zeiten.length; i++) {
@@ -164,6 +175,12 @@ export function wandleAntwortUm(daten: OpenMeteoAntwort): Wetterstunde[] {
       // Ohne Windangabe konservativ mit Windstille rechnen: Das Modell kühlt
       // dann langsamer aus, verspricht also eher zu wenig als zu viel.
       windgeschwindigkeitMProS: meterProSekunde(winde[i] ?? 0),
+      // Fehlt die Böe, gilt der Mittelwind – lieber der kleinere Wert als eine
+      // Warnung, die auf nichts beruht.
+      windboeeMProS: meterProSekunde(boeen[i] ?? winde[i] ?? 0),
+      niederschlagMmProH: millimeterProStunde(niederschlaege[i] ?? 0),
+      schneefallCm: schneefaelle[i] ?? 0,
+      wettercode: wettercodes[i] ?? 0,
     });
   }
 

@@ -129,6 +129,16 @@ export const INFO = {
 
 /** Erklärung zur Physik hinter einem Zusatzhinweis. */
 export const INFO_HINWEIS: Record<Hinweisart, { thema: string; text: string }> = {
+  wetterschutz: {
+    thema: 'Schutz bei offenem Fenster',
+    text:
+      'Massgeblich ist die Böe, nicht der mittlere Wind: Beide liegen weit ' +
+      'auseinander, in einer gemessenen Woche in Zürich 22 gegen 86 km/h. Gewarnt ' +
+      'wird ab rund 43 km/h Böe – da kann ein Flügel zuschlagen – und ab 61 km/h, ' +
+      'der Schwelle der Windwarnung von MeteoSchweiz. Die Empfehlung selbst ' +
+      'ändert sich dadurch nicht: Regenluft kühlt gut, ein gekipptes Fenster ' +
+      'unter Aufsicht bleibt eine sinnvolle Wahl.',
+  },
   luftqualitaet: {
     thema: 'Stosslüftung',
     text:

@@ -12,6 +12,7 @@ import type {
   Celsius,
   Kelvin,
   MeterProSekunde,
+  MillimeterProStunde,
   Stunden,
   WattProM2,
   WhProM2K,
@@ -154,6 +155,25 @@ export interface Wetterstunde {
    * Fenster die Raumluft austauscht (siehe `thermischesModell.ts`).
    */
   windgeschwindigkeitMProS: MeterProSekunde;
+  /**
+   * Höchste Böe in 10 m Höhe.
+   *
+   * Getrennt vom Mittelwind geführt, weil beide weit auseinanderliegen: In einer
+   * gemessenen Woche in Zürich standen 6 m/s Mittelwind fast 24 m/s Böen
+   * gegenüber. Für den Luftwechsel zählt der Mittelwind, für zuschlagende
+   * Fensterflügel die Böe.
+   */
+  windboeeMProS: MeterProSekunde;
+  /** Niederschlag der Stunde, Regen und Schnee zusammen als Wasserhöhe. */
+  niederschlagMmProH: MillimeterProStunde;
+  /** Anteil des Niederschlags, der als Schnee fällt – in Zentimetern Neuschnee. */
+  schneefallCm: number;
+  /**
+   * Wetterlage als WMO-Code, wie ihn die Wetter-API liefert. Gebraucht wird
+   * daraus nur, ob ein Gewitter angesagt ist (95 bis 99): Gewitter bringen Böe
+   * und Starkregen zugleich und setzen oft binnen Minuten ein.
+   */
+  wettercode: number;
 }
 
 /**
@@ -208,7 +228,7 @@ export type Dringlichkeit = 'hoch' | 'normal';
  * Die Art bestimmt das Symbol in der Oberfläche und die Rangfolge, in der
  * mehrere Hinweise erscheinen (siehe `logik/lueftungslogik.ts`).
  */
-export type Hinweisart = 'luftqualitaet' | 'feuchte' | 'wind' | 'kuehlung';
+export type Hinweisart = 'wetterschutz' | 'luftqualitaet' | 'feuchte' | 'wind' | 'kuehlung';
 
 /**
  * Ein ergänzender Hinweis zur Empfehlung.

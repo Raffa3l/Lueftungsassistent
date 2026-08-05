@@ -59,6 +59,12 @@ export type GrammProKg = number & Markiert<'g/kg'>;
 /** Windgeschwindigkeit. */
 export type MeterProSekunde = number & Markiert<'m/s'>;
 
+/**
+ * Niederschlag als Höhe je Stunde – die übliche Angabe: 1 mm entspricht einem
+ * Liter je Quadratmeter. Regen und geschmolzener Schnee sind darin enthalten.
+ */
+export type MillimeterProStunde = number & Markiert<'mm/h'>;
+
 /* ------------------------------------------------------------------ *
  * Konstruktoren – zur Laufzeit ohne Wirkung, im Typsystem der Übergang
  * von einer blanken Zahl zu einer Grösse mit Einheit.
@@ -72,6 +78,8 @@ export const whProM2K = (wert: number): WhProM2K => wert as WhProM2K;
 export const stunden = (wert: number): Stunden => wert as Stunden;
 export const grammProKg = (wert: number): GrammProKg => wert as GrammProKg;
 export const meterProSekunde = (wert: number): MeterProSekunde => wert as MeterProSekunde;
+export const millimeterProStunde = (wert: number): MillimeterProStunde =>
+  wert as MillimeterProStunde;
 
 /* ------------------------------------------------------------------ *
  * Rechnen mit Einheiten

@@ -33,6 +33,11 @@
   --status-dringend: #d03b3b;
   --status-dringend-flaeche: rgba(208, 59, 59, 0.14);
 
+  /* Warnung vor Sturm- oder Wasserschaden. Bewusst ein anderer Ton als der
+     Status «dringend»: Dort geht es um Hitze, hier um Schaden am Gebäude. */
+  --warnung: #a8590d;
+  --warnung-flaeche: rgba(168, 89, 13, 0.1);
+
   --radius: 12px;
   --schatten: 0 1px 2px rgba(11, 11, 11, 0.06), 0 4px 12px rgba(11, 11, 11, 0.04);
   --schrift-familie: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -65,6 +70,10 @@
     --status-offen-flaeche: rgba(12, 163, 12, 0.18);
     --status-zu-flaeche: rgba(236, 131, 90, 0.2);
     --status-dringend-flaeche: rgba(208, 59, 59, 0.2);
+
+    /* Auf dunklem Grund braucht der Warnton mehr Helligkeit für den Kontrast. */
+    --warnung: #e0a04a;
+    --warnung-flaeche: rgba(224, 160, 74, 0.14);
 
     --schatten: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
   }
@@ -334,6 +343,17 @@ main {
   height: 1.1rem;
   margin-top: 0.15rem;
   color: var(--serie-innen);
+}
+
+/* Warnung vor Sturm- oder Wasserschaden: abgesetzt vom Fliesstext der übrigen
+   Hinweise, damit sie beim Überfliegen auffällt. */
+.empfehlung__zusatz--warnung {
+  border-color: var(--warnung);
+  background: var(--warnung-flaeche);
+}
+
+.empfehlung__zusatz--warnung svg {
+  color: var(--warnung);
 }
 
 .empfehlung__wechsel {
@@ -1090,6 +1110,13 @@ tr:has(+ tr[data-wechsel]) > * {
   width: 0.9rem;
   height: 0.9rem;
   flex: none;
+}
+
+/* Warnung vor Sturm- oder Wasserschaden. Die Farbe ist Zugabe – Warndreieck
+   und Wort tragen die Bedeutung auch ohne sie. */
+.status-zusatz--warnung {
+  color: var(--warnung);
+  font-weight: 600;
 }
 
 @media (prefers-color-scheme: light) {

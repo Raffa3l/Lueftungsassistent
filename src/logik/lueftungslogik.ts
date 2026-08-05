@@ -13,6 +13,7 @@ import {
   type Celsius,
   type Kelvin,
   type MeterProSekunde,
+  type MillimeterProStunde,
 } from '../einheiten.ts';
 import { NACHT_BEGINN_STUNDE, NACHT_ENDE_STUNDE } from '../konfiguration/standardwerte.ts';
 import { drohtKondensation, istSchwuel, relativeFeuchteProzent } from './feuchte.ts';
@@ -42,6 +43,14 @@ export interface BewertungsEingabe {
   taupunktAussenC?: Celsius;
   /** Windgeschwindigkeit draussen. Ohne Angabe entfällt der Querlüftungshinweis. */
   windgeschwindigkeitMProS?: MeterProSekunde;
+  /** Höchste Böe. Ohne Angabe entfällt die Sturmwarnung. */
+  windboeeMProS?: MeterProSekunde;
+  /** Niederschlag der Stunde. Ohne Angabe entfällt die Regenwarnung. */
+  niederschlagMmProH?: MillimeterProStunde;
+  /** Neuschnee der Stunde in Zentimetern. */
+  schneefallCm?: number;
+  /** Wetterlage als WMO-Code; 95 bis 99 stehen für Gewitter. */
+  wettercode?: number;
 }
 
 /** Ist die Stunde Teil des Nachtfensters (22:00–06:59)? */
@@ -234,6 +243,12 @@ function hinweiseBeiOffenenFenstern(eingabe: BewertungsEingabe): Hinweis[] {
   const hinweise: Hinweis[] = [];
   const taupunktC = eingabe.taupunktAussenC;
 
+  // Schutz vor Schaden steht vor Komfort: Die Empfehlungskarte zeigt nur die
+  // ersten beiden Hinweise, und eine Sturmwarnung darf nicht hinter «schwül»
+  // verschwinden.
+  const schutz = wetterschutzhinweis(eingabe);
+  if (schutz) hinweise.push(schutz);
+
   if (taupunktC !== undefined) {
     // Tauwasser ist das ernstere Problem und schliesst den Schwülehinweis aus –
     // beide zugleich wären dieselbe Aussage in zwei Sätzen.
@@ -241,12 +256,106 @@ function hinweiseBeiOffenenFenstern(eingabe: BewertungsEingabe): Hinweis[] {
     else if (istSchwuel(taupunktC)) hinweise.push(SCHWUELE);
   }
 
-  if ((eingabe.windgeschwindigkeitMProS ?? 0) >= QUERLUEFTEN_AB_M_PRO_S) {
+  // Bei Böen, die Flügel zuschlagen lassen, wäre die Aufforderung zum
+  // Querlüften ein Widerspruch zur Warnung eine Zeile darüber.
+  const boeig = (eingabe.windboeeMProS ?? 0) >= BOEEN_AB_M_PRO_S;
+  if (!boeig && (eingabe.windgeschwindigkeitMProS ?? 0) >= QUERLUEFTEN_AB_M_PRO_S) {
     hinweise.push(QUERLUEFTEN);
   }
 
   return hinweise;
 }
+
+/* ------------------------------------------------------------------ *
+ * Warnungen vor Sturm- und Wasserschaden
+ *
+ * Sie ändern die Empfehlung nicht. Regen kühlt die Luft ab und ist thermisch
+ * oft die beste Lüftungsgelegenheit des Tages – ein Fenster auf Kipp ist dann
+ * eine vernünftige Entscheidung, die der App nicht zusteht. Sie sagt, worauf
+ * zu achten ist, und überlässt den Entscheid dem Menschen am Fenster.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Ab dieser Böe kann ein offener Flügel zuschlagen: rund 43 km/h, Windstärke 6
+ * («starker Wind»). Lose Gegenstände auf dem Fensterbrett bewegen sich, Papier
+ * fliegt vom Tisch.
+ */
+const BOEEN_AB_M_PRO_S = 12;
+
+/**
+ * Ab dieser Böe wird es zum Sturm: rund 61 km/h. Das entspricht der Schwelle,
+ * ab der MeteoSchweiz eine Windwarnung der Stufe 2 herausgibt.
+ */
+const STURM_AB_M_PRO_S = 17;
+
+/**
+ * Ab dieser Niederschlagsmenge wird das Fensterbrett nass. Darunter liegt
+ * Sprühregen, der bei geschlossenem Rollladen oder Vordach folgenlos bleibt.
+ */
+const REGEN_AB_MM_PRO_H = 0.5;
+
+/** WMO-Wettercodes für Gewitter, mit und ohne Hagel. */
+const GEWITTER_CODES = new Set([95, 96, 99]);
+
+/**
+ * Der dringlichste Wetterschutzhinweis für diese Stunde, sonst `undefined`.
+ *
+ * Es wird bewusst nur einer ausgegeben: Bei einem Gewitter träfen Sturm- und
+ * Regenwarnung zugleich zu, und drei Warnungen übereinander liest niemand mehr.
+ * Die Reihenfolge entspricht dem Schadenspotenzial.
+ */
+function wetterschutzhinweis(eingabe: BewertungsEingabe): Hinweis | undefined {
+  if (eingabe.wettercode !== undefined && GEWITTER_CODES.has(eingabe.wettercode)) {
+    return GEWITTER;
+  }
+  if ((eingabe.windboeeMProS ?? 0) >= STURM_AB_M_PRO_S) return STURM;
+  if ((eingabe.windboeeMProS ?? 0) >= BOEEN_AB_M_PRO_S) return BOEEN;
+  if ((eingabe.schneefallCm ?? 0) > 0) return SCHNEE;
+  if ((eingabe.niederschlagMmProH ?? 0) >= REGEN_AB_MM_PRO_H) return REGEN;
+  return undefined;
+}
+
+const GEWITTER: Hinweis = {
+  art: 'wetterschutz',
+  kuerzel: 'Gewitter',
+  text:
+    'Gewitter angesagt: Sturmböen und Starkregen setzen oft binnen Minuten ein. ' +
+    'Offene Fenster jetzt im Auge behalten – kühler wird es nach dem Durchzug ' +
+    'ohnehin.',
+};
+
+const STURM: Hinweis = {
+  art: 'wetterschutz',
+  kuerzel: 'Sturm',
+  text:
+    'Sturmböen über 60 km/h: Offene Flügel schlagen zu und können Scheibe oder ' +
+    'Beschlag beschädigen. Fenster schliessen oder sicher verriegeln.',
+};
+
+const BOEEN: Hinweis = {
+  art: 'wetterschutz',
+  kuerzel: 'Böen',
+  text:
+    'Kräftige Böen: Ein offener Flügel kann zuschlagen. Fenster feststellen und ' +
+    'lose Gegenstände vom Fensterbrett nehmen.',
+};
+
+const REGEN: Hinweis = {
+  art: 'wetterschutz',
+  kuerzel: 'Regen',
+  text:
+    'Es regnet: Bei offenem Fenster wird das Fensterbrett nass, bei Wind auch ' +
+    'der Boden davor. Regenluft ist zum Kühlen gut – ein gekipptes Fenster mit ' +
+    'Blick darauf reicht meist.',
+};
+
+const SCHNEE: Hinweis = {
+  art: 'wetterschutz',
+  kuerzel: 'Schnee',
+  text:
+    'Es schneit: Durch ein offenes Fenster wehen Flocken herein, die drinnen ' +
+    'schmelzen und Fensterbrett und Boden nässen.',
+};
 
 const KONDENSATION: Hinweis = {
   art: 'feuchte',

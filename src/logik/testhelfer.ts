@@ -1,5 +1,12 @@
 import type { Einstellungen, Gebaeudetyp, Raumtyp, Wetterstunde } from '../typen.ts';
-import { celsius, meterProSekunde, stunden, wattProM2, whProM2K } from '../einheiten.ts';
+import {
+  celsius,
+  meterProSekunde,
+  millimeterProStunde,
+  stunden,
+  wattProM2,
+  whProM2K,
+} from '../einheiten.ts';
 import { STANDARD_EINSTELLUNGEN } from '../konfiguration/standardwerte.ts';
 
 /** Gemeinsame Bausteine für die Unit-Tests. */
@@ -63,6 +70,14 @@ const TROCKEN_TAUPUNKT_C = 5;
 const REFERENZ_WIND_M_PRO_S = 2;
 
 /**
+ * Ruhiges Wetter als Ausgangslage: keine Böen über der Warnschwelle, kein
+ * Niederschlag, kein Gewitter. Tests zu den Warnhinweisen setzen die Werte
+ * ausdrücklich – so bleibt sichtbar, welcher Wert die Warnung auslöst.
+ */
+const RUHIGE_BOEE_M_PRO_S = 3;
+const WMO_KLAR = 0;
+
+/**
  * Baut eine Stundenreihe aus Aussentemperaturen.
  * Startet am angegebenen Augusttag um `startStunde` Uhr.
  */
@@ -82,6 +97,10 @@ export function erzeugeWetterstunden(
     relativeFeuchteProzent: 50,
     taupunktC: celsius(TROCKEN_TAUPUNKT_C),
     windgeschwindigkeitMProS: meterProSekunde(REFERENZ_WIND_M_PRO_S),
+    windboeeMProS: meterProSekunde(RUHIGE_BOEE_M_PRO_S),
+    niederschlagMmProH: millimeterProStunde(0),
+    schneefallCm: 0,
+    wettercode: WMO_KLAR,
     ...zusatz,
   }));
 }

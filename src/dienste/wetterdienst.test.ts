@@ -78,6 +78,16 @@ describe('ladeWetterdaten', () => {
     );
   });
 
+  it('fordert die Grössen für die Warnhinweise an', async () => {
+    const angefordert = (await abgerufeneUrl()).searchParams.get('hourly')?.split(',');
+
+    // Die Böe ist die entscheidende: Der Mittelwind sagt über zuschlagende
+    // Fensterflügel nichts aus.
+    expect(angefordert).toEqual(
+      expect.arrayContaining(['wind_gusts_10m', 'precipitation', 'snowfall', 'weather_code']),
+    );
+  });
+
   it('fordert den Wind in Meter pro Sekunde an', async () => {
     // Voreinstellung wäre km/h – die Zahlen kämen dann 3.6-fach zu gross an.
     expect((await abgerufeneUrl()).searchParams.get('wind_speed_unit')).toBe('ms');
@@ -126,6 +136,44 @@ describe('wandleAntwortUm', () => {
 
     // Konservativ: Das Modell kühlt dann langsamer aus als in Wirklichkeit.
     expect(stunden[0]?.windgeschwindigkeitMProS).toBe(0);
+  });
+
+  it('übernimmt Böe, Niederschlag, Schnee und Wettercode', () => {
+    const stunden = wandleAntwortUm({
+      hourly: {
+        time: ['2026-08-01T00:00'],
+        temperature_2m: [21],
+        wind_speed_10m: [4],
+        wind_gusts_10m: [18],
+        precipitation: [2.4],
+        snowfall: [0.3],
+        weather_code: [95],
+      },
+    });
+
+    expect(stunden[0]?.windboeeMProS).toBe(18);
+    expect(stunden[0]?.niederschlagMmProH).toBe(2.4);
+    expect(stunden[0]?.schneefallCm).toBe(0.3);
+    expect(stunden[0]?.wettercode).toBe(95);
+  });
+
+  it('nimmt ohne Böenangabe den Mittelwind statt einer erfundenen Böe', () => {
+    const stunden = wandleAntwortUm({
+      hourly: { time: ['2026-08-01T00:00'], temperature_2m: [21], wind_speed_10m: [6] },
+    });
+
+    // Lieber der kleinere Wert als eine Warnung, die auf nichts beruht.
+    expect(stunden[0]?.windboeeMProS).toBe(6);
+  });
+
+  it('nimmt ohne Niederschlagsangabe trockenes Wetter an', () => {
+    const stunden = wandleAntwortUm({
+      hourly: { time: ['2026-08-01T00:00'], temperature_2m: [21] },
+    });
+
+    expect(stunden[0]?.niederschlagMmProH).toBe(0);
+    expect(stunden[0]?.schneefallCm).toBe(0);
+    expect(stunden[0]?.wettercode).toBe(0);
   });
 
   it('interpretiert die Zeitstempel als Wanduhrzeit der Station', () => {

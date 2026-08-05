@@ -7,7 +7,13 @@ import {
 } from './lueftungslogik.ts';
 import { testEinstellungen } from './testhelfer.ts';
 import type { Empfehlung, Hinweisart, SimulationsStunde } from '../typen.ts';
-import { celsius, kelvin, meterProSekunde, wattProM2 } from '../einheiten.ts';
+import {
+  celsius,
+  kelvin,
+  meterProSekunde,
+  millimeterProStunde,
+  wattProM2,
+} from '../einheiten.ts';
 
 describe('istNachtstunde', () => {
   it('erkennt das Nachtfenster von 22:00 bis 06:59', () => {
@@ -382,6 +388,123 @@ describe('bewerteStunde – Feuchte- und Windhinweise beim Öffnen', () => {
   });
 });
 
+/**
+ * Warnungen vor Sturm- und Wasserschaden.
+ *
+ * Sie sollen aufmerksam machen, nicht bevormunden: Die Empfehlung bleibt in
+ * jedem Fall unverändert – Regenluft kühlt gut, und ob das Fenster trotzdem
+ * offen bleibt, entscheidet der Mensch davor.
+ */
+describe('bewerteStunde – Warnungen bei offenem Fenster', () => {
+  const lueften = {
+    aussentemperaturC: celsius(20),
+    raumtemperaturC: celsius(27),
+    stundeDesTages: 22,
+    einstellungen: testEinstellungen(),
+    vorherigerStatus: 'schliessen' as const,
+  };
+
+  it('warnt vor Böen, die einen Flügel zuschlagen lassen', () => {
+    const empfehlung = bewerteStunde({ ...lueften, windboeeMProS: meterProSekunde(13) });
+
+    expect(arten(empfehlung)).toContain('wetterschutz');
+    expect(empfehlung.zusatzhinweise[0]?.kuerzel).toBe('Böen');
+  });
+
+  it('schweigt bei ruhigem Wind', () => {
+    const empfehlung = bewerteStunde({ ...lueften, windboeeMProS: meterProSekunde(8) });
+    expect(arten(empfehlung)).not.toContain('wetterschutz');
+  });
+
+  it('nennt Sturm beim Namen, sobald die Warnschwelle erreicht ist', () => {
+    const empfehlung = bewerteStunde({ ...lueften, windboeeMProS: meterProSekunde(18) });
+    expect(empfehlung.zusatzhinweise[0]?.kuerzel).toBe('Sturm');
+  });
+
+  it('warnt vor Regen, der das Fensterbrett nässt', () => {
+    const empfehlung = bewerteStunde({ ...lueften, niederschlagMmProH: millimeterProStunde(2) });
+    expect(empfehlung.zusatzhinweise[0]?.kuerzel).toBe('Regen');
+  });
+
+  it('schweigt bei blossem Sprühregen', () => {
+    const empfehlung = bewerteStunde({ ...lueften, niederschlagMmProH: millimeterProStunde(0.2) });
+    expect(arten(empfehlung)).not.toContain('wetterschutz');
+  });
+
+  it('warnt bei Schneefall', () => {
+    const empfehlung = bewerteStunde({ ...lueften, schneefallCm: 0.4 });
+    expect(empfehlung.zusatzhinweise[0]?.kuerzel).toBe('Schnee');
+  });
+
+  it('warnt vor Gewitter, auch wenn noch kein Regen fällt', () => {
+    // Gewitter setzen binnen Minuten ein – die Vorwarnung ist der Sinn der Sache.
+    const empfehlung = bewerteStunde({ ...lueften, wettercode: 95 });
+    expect(empfehlung.zusatzhinweise[0]?.kuerzel).toBe('Gewitter');
+  });
+
+  it('gibt bei Gewitter nur eine Warnung, nicht drei', () => {
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      wettercode: 95,
+      windboeeMProS: meterProSekunde(20),
+      niederschlagMmProH: millimeterProStunde(8),
+    });
+
+    expect(arten(empfehlung).filter((art) => art === 'wetterschutz')).toHaveLength(1);
+    expect(empfehlung.zusatzhinweise[0]?.kuerzel).toBe('Gewitter');
+  });
+
+  it('stellt die Warnung vor die Komforthinweise', () => {
+    // Die Empfehlungskarte zeigt nur zwei Hinweise – die Warnung darf nicht
+    // hinter «schwül» herausfallen.
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      taupunktAussenC: celsius(18),
+      windboeeMProS: meterProSekunde(18),
+    });
+
+    expect(arten(empfehlung)[0]).toBe('wetterschutz');
+  });
+
+  it('rät bei Böen nicht gleichzeitig zum Querlüften', () => {
+    // Beides zusammen wäre ein Widerspruch in benachbarten Zeilen.
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      windgeschwindigkeitMProS: meterProSekunde(6),
+      windboeeMProS: meterProSekunde(15),
+    });
+
+    expect(arten(empfehlung)).toContain('wetterschutz');
+    expect(arten(empfehlung)).not.toContain('wind');
+  });
+
+  it('lässt die Empfehlung unverändert – gewarnt wird, nicht entschieden', () => {
+    const ruhig = bewerteStunde(lueften);
+    const stuermisch = bewerteStunde({
+      ...lueften,
+      wettercode: 95,
+      windboeeMProS: meterProSekunde(25),
+      niederschlagMmProH: millimeterProStunde(13),
+    });
+
+    expect(ruhig.status).toBe('oeffnen');
+    expect(stuermisch.status).toBe('oeffnen');
+    expect(stuermisch.dringlichkeit).toBe(ruhig.dringlichkeit);
+  });
+
+  it('warnt nicht, solange die Fenster ohnehin geschlossen bleiben', () => {
+    const empfehlung = bewerteStunde({
+      ...lueften,
+      aussentemperaturC: celsius(30),
+      raumtemperaturC: celsius(24),
+      windboeeMProS: meterProSekunde(25),
+    });
+
+    expect(empfehlung.status).toBe('schliessen');
+    expect(arten(empfehlung)).not.toContain('wetterschutz');
+  });
+});
+
 /** Baut eine minimale Simulationsreihe nur mit den für die Auswertung nötigen Feldern. */
 function reiheAusStatus(status: readonly ('oeffnen' | 'schliessen')[]): SimulationsStunde[] {
   return status.map((s, index) => ({
@@ -393,6 +516,10 @@ function reiheAusStatus(status: readonly ('oeffnen' | 'schliessen')[]): Simulati
     relativeFeuchteProzent: 50,
     taupunktC: celsius(5),
     windgeschwindigkeitMProS: meterProSekunde(2),
+    windboeeMProS: meterProSekunde(3),
+    niederschlagMmProH: millimeterProStunde(0),
+    schneefallCm: 0,
+    wettercode: 0,
     raumtemperaturC: celsius(24),
     raumtemperaturOhneLueftungC: celsius(24),
     empfehlung: {

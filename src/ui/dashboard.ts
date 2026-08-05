@@ -60,8 +60,11 @@ export function rendereDashboard(behaelter: HTMLElement, daten: DashboardDaten):
 
   for (const hinweis of empfehlung.zusatzhinweise.slice(0, MAX_HINWEISE)) {
     const erklaerung = INFO_HINWEIS[hinweis.art];
+    // Eine Warnung vor Sturm- oder Wasserschaden bekommt mehr Gewicht als ein
+    // Komforthinweis – gleich gesetzt ginge sie neben «schwül» unter.
+    const warnung = hinweis.art === 'wetterschutz';
     behaelter.append(
-      el('p', { class: 'empfehlung__zusatz' }, [
+      el('p', { class: `empfehlung__zusatz${warnung ? ' empfehlung__zusatz--warnung' : ''}` }, [
         symbolFuerHinweis(hinweis.art),
         el('span', {}, [hinweis.text, ' ', infofeld(erklaerung.thema, erklaerung.text)]),
       ]),

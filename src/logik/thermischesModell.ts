@@ -305,6 +305,10 @@ export function simuliere(
       stosslueftungNoetig: raumtyp.stosslueftungNoetig,
       taupunktAussenC: stunde.taupunktC,
       windgeschwindigkeitMProS: stunde.windgeschwindigkeitMProS,
+      windboeeMProS: stunde.windboeeMProS,
+      niederschlagMmProH: stunde.niederschlagMmProH,
+      schneefallCm: stunde.schneefallCm,
+      wettercode: stunde.wettercode,
     });
 
     stunden.push({

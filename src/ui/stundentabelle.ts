@@ -94,11 +94,19 @@ function statusMarke(stunde: SimulationsStunde): HTMLElement {
   const wichtigster = hinweise[0];
   if (!wichtigster) return marke;
 
+  // Warnungen vor Schaden heben sich ab – sonst stünde «Sturm» so beiläufig da
+  // wie «Ventilator». Die Bedeutung trägt weiterhin Symbol plus Text.
+  const warnung = wichtigster.art === 'wetterschutz';
+
   return el('span', { class: 'status-gruppe' }, [
     marke,
-    el('span', { class: 'status-zusatz', title: hinweise.map((h) => h.text).join(' ') }, [
-      symbolFuerHinweis(wichtigster.art),
-      wichtigster.kuerzel,
-    ]),
+    el(
+      'span',
+      {
+        class: `status-zusatz${warnung ? ' status-zusatz--warnung' : ''}`,
+        title: hinweise.map((h) => h.text).join(' '),
+      },
+      [symbolFuerHinweis(wichtigster.art), wichtigster.kuerzel],
+    ),
   ]);
 }
