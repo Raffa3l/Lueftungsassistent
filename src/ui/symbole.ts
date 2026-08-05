@@ -82,13 +82,21 @@ export function symbolWind(): SVGSVGElement {
 }
 
 /** Rotor – steht für Luftbewegung im Raum (Ventilator). */
+/**
+ * Standventilator in Seitenansicht: Schutzkorb mit Nabe, darunter Säule und Fuss.
+ *
+ * Der Fuss ist der Grund für diese Form. Ein blosser Kreis mit Speichen –
+ * naheliegend als Propeller gedacht – liest sich als Markenzeichen eines
+ * Autoherstellers, und gebogene Flügel verschmieren bei den 14 Pixeln, mit
+ * denen das Symbol in der Stundentabelle steht. Die Silhouette aus Kreis und
+ * Standfuss bleibt auch dort eindeutig ein Gerät.
+ */
 export function symbolVentilator(): SVGSVGElement {
   return symbol([
-    'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
-    'M12 12V6',
-    'M12 12l5.2 3',
-    'M12 12l-5.2 3',
-    'M12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
+    'M12 3.5a6 6 0 1 0 0 12 6 6 0 0 0 0-12z',
+    'M12 8.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z',
+    'M12 15.5v3.5',
+    'M8.5 20.5h7',
   ]);
 }
 
